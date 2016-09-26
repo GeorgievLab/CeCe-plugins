@@ -86,19 +86,3 @@ build_plugin(python
 )
 
 # ######################################################################### #
-
-# Install python on Windows
-if (WIN32)
-    find_file(PYTHON_DLL python27.dll
-        HINTS $ENV{SYSTEMROOT}\\System32 $ENV{SYSTEMROOT}\\SysWOW64
-    )
-
-    if (PYTHON_DLL)
-        message(STATUS "Python DLL found: ${PYTHON_DLL}")
-        install(FILES ${PYTHON_DLL} DESTINATION bin)
-    else ()
-        message(WARNING "Unable to find python DLL")
-    endif ()
-endif ()
-
-# ######################################################################### #

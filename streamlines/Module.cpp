@@ -101,7 +101,7 @@ void Module::init(AtomicBool& flag)
     setWallDynamics(createWallDynamics());
 
     // Initialize boundary positions
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < m_boundaries.getCount(); ++i)
         m_boundaries[i].setDynamics(createBorderDynamics(m_boundaries[i].getPosition()));
 
     // Initialize boundaries

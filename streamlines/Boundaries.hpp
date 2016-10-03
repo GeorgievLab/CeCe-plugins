@@ -106,6 +106,17 @@ public:
 
 
     /**
+     * @brief Returns a number of boundaries.
+     *
+     * @return
+     */
+    int getCount() const noexcept
+    {
+        return m_boundaries.size();
+    }
+
+
+    /**
      * @brief Return simulation.
      *
      * @return

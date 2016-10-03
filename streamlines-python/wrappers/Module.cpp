@@ -28,7 +28,6 @@
 
 // CeCe
 #include "cece/core/StringStream.hpp"
-#include "cece/simulator/Simulation.hpp"
 
 // Diffusion
 #include "../../streamlines/Module.hpp"
@@ -70,6 +69,7 @@ public:
     ModuleType()
         : Type("streamlines.Module")
     {
+        tp_getset = m_properties;
         tp_methods = m_methods;
     }
 
@@ -78,11 +78,211 @@ public:
 public:
 
 
+    /**
+     * @brief Returns lattice size.
+     *
+     * @param self
+     *
+     * @return
+     */
+    static PyObject* getLatticeSize(SelfType* self) noexcept
+    {
+        return makeObject(self->value->getLattice().getSize()).release();
+    }
+
+
+    /**
+     * @brief Check if there is a obstacle at given position.
+     *
+     * @param self
+     * @param args
+     *
+     * @return
+     */
+    static PyObject* isObstacle(SelfType* self, PyObject* args) noexcept
+    {
+        CECE_ASSERT(self);
+        CECE_ASSERT(self->value);
+        CECE_ASSERT(args);
+
+        int x;
+        int y;
+
+        if (!PyArg_ParseTuple(args, "ii", &x, &y))
+            return nullptr;
+
+        // Check if is in range
+        const auto& lattice = self->value->getLattice();
+        const auto size = lattice.getSize();
+        const auto coord = plugin::streamlines::Lattice::CoordinateType(x, y);
+
+        if (!lattice.inRange(coord))
+        {
+            OutStringStream oss;
+            oss << "Coordinates [" << x << ", " << y << "] out of range [" << size.getWidth() << ", " << size.getHeight() << "]";
+            PyErr_SetString(PyExc_RuntimeError, oss.str().c_str());
+            return nullptr;
+        }
+
+        // Get lattice node
+        const auto& node = lattice[coord];
+
+        return makeObject(node.getDynamics() == self->value->getWallDynamics()).release();
+    }
+
+
+    /**
+     * @brief Change obstacle type at given position.
+     *
+     * @param self
+     * @param args
+     *
+     * @return
+     */
+    static PyObject* setObstacle(SelfType* self, PyObject* args) noexcept
+    {
+        CECE_ASSERT(self);
+        CECE_ASSERT(self->value);
+        CECE_ASSERT(args);
+
+        int x;
+        int y;
+        int flag;
+
+        if (!PyArg_ParseTuple(args, "iii", &x, &y, &flag))
+            return nullptr;
+
+        // Check if is in range
+        auto& lattice = self->value->getLattice();
+        const auto size = lattice.getSize();
+        const auto coord = plugin::streamlines::Lattice::CoordinateType(x, y);
+
+        if (!lattice.inRange(coord))
+        {
+            OutStringStream oss;
+            oss << "Coordinates [" << x << ", " << y << "] out of range [" << size.getWidth() << ", " << size.getHeight() << "]";
+            PyErr_SetString(PyExc_RuntimeError, oss.str().c_str());
+            return nullptr;
+        }
+
+        // Get lattice node
+        auto& node = lattice[coord];
+
+        if (flag)
+            node.setDynamics(self->value->getWallDynamics());
+        else
+            node.setDynamics(self->value->getFluidDynamics());
+
+        return none().release();
+    }
+
+
+    /**
+     * @brief Returns velocity.
+     *
+     * @param self
+     * @param args
+     *
+     * @return
+     */
+    static PyObject* getVelocity(SelfType* self, PyObject* args) noexcept
+    {
+        CECE_ASSERT(self);
+        CECE_ASSERT(self->value);
+        CECE_ASSERT(args);
+
+        int x;
+        int y;
+
+        if (!PyArg_ParseTuple(args, "ii", &x, &y))
+            return nullptr;
+
+        // Check if is in range
+        const auto& lattice = self->value->getLattice();
+        const auto size = lattice.getSize();
+        const auto coord = plugin::streamlines::Lattice::CoordinateType(x, y);
+
+        if (!lattice.inRange(coord))
+        {
+            OutStringStream oss;
+            oss << "Coordinates [" << x << ", " << y << "] out of range [" << size.getWidth() << ", " << size.getHeight() << "]";
+            PyErr_SetString(PyExc_RuntimeError, oss.str().c_str());
+            return nullptr;
+        }
+
+        // Converter
+        const auto& conv = self->value->getConverter();
+
+        // Get lattice node
+        const auto& node = lattice[coord];
+
+        // Calculate velocity
+        return makeObject(conv.convertVelocity(node.computeVelocity())).release();
+    }
+
+
+    /**
+     * @brief Returns velocity.
+     *
+     * @param self
+     * @param args
+     *
+     * @return
+     */
+    static PyObject* setVelocity(SelfType* self, PyObject* args) noexcept
+    {
+        CECE_ASSERT(self);
+        CECE_ASSERT(self->value);
+        CECE_ASSERT(args);
+
+        int x;
+        int y;
+        PyObject* vel;
+
+        if (!PyArg_ParseTuple(args, "iiO", &x, &y, &vel))
+            return nullptr;
+
+        // Check if is in range
+        auto& lattice = self->value->getLattice();
+        const auto size = lattice.getSize();
+        const auto coord = plugin::streamlines::Lattice::CoordinateType(x, y);
+
+        if (!lattice.inRange(coord))
+        {
+            OutStringStream oss;
+            oss << "Coordinates [" << x << ", " << y << "] out of range [" << size.getWidth() << ", " << size.getHeight() << "]";
+            PyErr_SetString(PyExc_RuntimeError, oss.str().c_str());
+            return nullptr;
+        }
+
+        // Converter
+        const auto& conv = self->value->getConverter();
+
+        // Get lattice node
+        auto& node = lattice[coord];
+
+        // Set velocity
+        node.defineVelocity(conv.convertVelocity(cast<units::VelocityVector>(vel)));
+
+        return none().release();
+    }
+
+
 // Private Data Members
 private:
 
+    /// Type properties.
+    PyGetSetDef m_properties[2] = {
+        {const_cast<char*>("latticeSize"), (getter) getLatticeSize, nullptr, nullptr},
+        {nullptr}  /* Sentinel */
+    };
+
     /// Type methods
-    PyMethodDef m_methods[1] = {
+    PyMethodDef m_methods[5] = {
+        {"isObstacle", (PyCFunction) isObstacle, METH_VARARGS, nullptr},
+        {"setObstacle", (PyCFunction) setObstacle, METH_VARARGS, nullptr},
+        {"getVelocity", (PyCFunction) getVelocity, METH_VARARGS, nullptr},
+        {"setVelocity", (PyCFunction) setVelocity, METH_VARARGS, nullptr},
         {nullptr}  /* Sentinel */
     };
 

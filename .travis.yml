@@ -26,18 +26,6 @@
 sudo: required
 dist: trusty
 
-# Operating systems
-os:
-    - linux
-    - osx
-
-# Compilers
-compiler:
-    - clang
-    - gcc
-
-language: cpp
-
 cache: ccache
 
 # Disable build for AppVeyor branch

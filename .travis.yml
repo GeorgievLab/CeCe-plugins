@@ -45,11 +45,32 @@ branches:
     except:
         - appveyor
 
-# Environment variables
-env:
-    matrix:
-        - CECE_RENDER=On
-        - CECE_RENDER=Off
+matrix:
+    include:
+        - os: linux
+          compiler: gcc
+          env: CECE_RENDER=On DEPLOY=On
+        - os: linux
+          compiler: gcc
+          env: CECE_RENDER=Off DEPLOY=Off
+        - os: linux
+          compiler: clang
+          env: CECE_RENDER=On DEPLOY=Off
+        - os: linux
+          compiler: clang
+          env: CECE_RENDER=Off DEPLOY=Off
+        - os: osx
+          compiler: clang
+          env: CECE_RENDER=On DEPLOY=On
+        - os: osx
+          compiler: clang
+          env: CECE_RENDER=Off DEPLOY=Off
+        - os: osx
+          compiler: gcc
+          env: CECE_RENDER=On DEPLOY=Off
+        - os: osx
+          compiler: gcc
+          env: CECE_RENDER=Off DEPLOY=Off
 
 addons:
     apt:
@@ -84,8 +105,24 @@ after_success:
     - GTEST_COLOR=1 ctest --verbose
     - popd
 
+before_deploy:
+    - pushd build
+    - cpack -G TGZ
+    - popd
+
 notifications:
     slack:
         secure: "TDjLJCNdUM+Iwe318zYNeTYIeOi0JZJCPpzATSXRvTdxvCcYHMespzKoGOfLsqxdQNse3DCOECMMtPVfjH1KQIx6h9nx7BkX/0HenPX4PUa/wnPWfoUxj3vJdzOUx83ih7wQrJd6Sqr9OmyrSoeYtohf53WEyYaqD/aco3aIIij+7LqiFgSMeet4CehNjMZM2INu93MDU2tNn0ibOiLAd5078HDj3nJvg508Owccl1J8IWfRnE/ONEMbYgdXzNd5zgfYoGHQIZe7GV2pWVdV8vAUMX3ym5u9FIbRnTMvyt2W3Og363OcFk+lBcEKQBWlHAZmwn8UCgo7QOhL0sA/qUSpu7A/gBC6AZFfNyoRhFCFLAMkoJBcgrqFX8hFyDrnZip6h2J2FMPMy3pHoKnXLsRm5L5uur0JA7ODu8hHiwFA7BReWUJZQlAUnpsdFmeUA2Oaahkhil3GrT89O95tyIRFyYW0DzXP4R89FD5MyhDycMyA0Chd2TrhbhEX4ogfEv7xN5HD2UMYCGbMCrcgJor5QoV7lo8FfVdjKyp90KYT1GUFMagCGBjZHHyDDMMpDGFQsponRvWepYL+5XkRhhX6zx9YPPh9yzL70+/ILKs/OQpm+F1yYr0pXrYK0c2mgn5qXJBU7aaPCqhzER+Q7khTO0z36nB0KvIU8mRp8fc="
+
+deploy:
+    provider: bintray
+    file: "build/descriptor.json"
+    user: "ntsfka"
+    key:
+        secure: "PNgVF3S2R4U1x9HPcuCaueoXRKT07QVNeUBc2UvpsRmnELDxLEhB//SEa37XkZQ67qoxV7EQ2/DMVV98bF5hqr5f0ejkT6oyZ2GCLVas3BsODN7qPDZl4CLFtlmg/4MhNH5vi+KAXQ/nX+XsidhGIuhgda9tVfbK6WG+nKh144fF8+Y6PnoMZOIDCDYs/ITjqCTMh/Tw3ygef16UZUXZDUEngqdlqp1yZStIW9G856JAwI0+8QKSxvgUnS8uLZaXcjXrdkIOEWcmGdxdEzEA4W5mEcXc5hkwakCP6Y7orUg1msWyBpjBHrCe3UOeXDHQgnRxmCIXE4YqsAQQ4geALY2F+hOluFB5aNfx226BAyjwR10czbHu0yrQ0YER+E4BAKpy0lcUbHQwWLphrnbRbeLw6uWl9Dinjt/sIr4tu8fxU35ursnYnn0qJrzZT6AQA+HPAqgMqxRW5VEDIMSTg/wLGch+dZxgw6pQZuHHSyAYbnY/RQj4WG3Im+UIqaVMe2nmh7WVoVr7m/nppIw986tSA8AcyERef7IPaxJp96y84YzWRnEK+6FJJgZlKrnsat4rR3YPwldybIM5VBdGJpC1TomtA32SDgmlfXezBXjCXxktJP3bAtPIdoxHjbqEaJxEdajUvLvHu1LWoNzhdzwQytnQmUKLpytewitI+So="
+    skip_cleanup: true
+    on:
+        branch: master
+        condition: "$DEPLOY = On"
 
 # ######################################################################### #

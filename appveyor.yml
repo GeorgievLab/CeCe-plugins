@@ -25,22 +25,30 @@
 
 os: Visual Studio 2015
 
-version: 0.6.0.{build}
+version: 0.6.1.{build}
 
 environment:
     matrix:
         - GENERATOR: Visual Studio 14 2015 Win64
           CECE_RENDER: On
+          DEPLOY: On
+          PACKAGE: win64
         - GENERATOR: Visual Studio 14 2015 Win64
           CECE_RENDER: Off
+          DEPLOY: Off
         - GENERATOR: Visual Studio 14 2015
           CECE_RENDER: On
+          DEPLOY: On
+          PACKAGE: win32
         - GENERATOR: Visual Studio 14 2015
           CECE_RENDER: Off
+          DEPLOY: Off
         - GENERATOR: MinGW Makefiles
           CECE_RENDER: On
+          DEPLOY: Off
         - GENERATOR: MinGW Makefiles
           CECE_RENDER: Off
+          DEPLOY: Off
 
 matrix:
     allow_failures:
@@ -53,7 +61,6 @@ branches:
 
 install:
     - git submodule update --init --recursive
-    - SET PATH=%PATH:C:\Program Files\Git\usr\bin;=%
     - SET PATH=C:\MinGW\bin;%PATH%
 
 before_build:
@@ -65,5 +72,26 @@ build_script:
 
 test_script:
     - pushd build && ctest --verbose & popd
+
+after_build:
+    - pushd build && cpack -G ZIP && move /y CeCe-plugins-*.zip .. & popd
+
+artifacts:
+    - name: CeCe
+      path: CeCe-plugins-*.zip
+
+deploy:
+    - provider: BinTray
+      username: ntsfka
+      api_key:
+          secure: iLOqXHWkZPY0aVN0pqYTyTqoD8+BMC0cT8rqAuPjoUd8BJSdTszxf1KKBau3VsVL
+      subject: georgievlab
+      repo: CeCe-plugins-ci
+      package: $(PACKAGE)
+      publish: true
+      override: true
+      on:
+          branch: master
+          DEPLOY: On
 
 # ######################################################################### #

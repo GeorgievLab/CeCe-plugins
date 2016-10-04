@@ -27,7 +27,10 @@ cmake_minimum_required(VERSION 3.1)
 
 # ######################################################################### #
 
-project(cece-plugins)
+project(cece-plugins
+    VERSION 0.6.1
+    LANGUAGES CXX
+)
 
 # ######################################################################### #
 
@@ -273,5 +276,88 @@ add_custom_target(${PROJECT_NAME}
 set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
 )
+
+# ######################################################################### #
+
+if (${CMAKE_SOURCE_DIR} MATCHES ${CMAKE_CURRENT_SOURCE_DIR})
+    install(FILES LICENSE.txt Copyright.txt
+        DESTINATION .
+    )
+
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "CeCe standard plugins")
+    set(CPACK_PACKAGE_VENDOR "Georgiev Lab")
+    set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
+    set(CPACK_PACKAGE_NAME CeCe-plugins)
+    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+    set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+    set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+    set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+    set(CPACK_PACKAGE_CONTACT "Jiří Fatka <fatkaj@ntis.zcu.cz>")
+
+    find_package(Git)
+    if (GIT_FOUND)
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} describe --exact-match --tags
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            OUTPUT_VARIABLE GIT_TAG
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            OUTPUT_VARIABLE GIT_COMMIT
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            OUTPUT_VARIABLE GIT_BRANCH
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+    endif ()
+
+    message(STATUS "TAG: ${GIT_TAG}")
+    message(STATUS "COMMIT: ${GIT_COMMIT}")
+    message(STATUS "BRANCH: ${GIT_BRANCH}")
+
+    if (NOT GIT_TAG AND GIT_COMMIT AND GIT_BRANCH)
+        set(SYSTEM_NAME ${CMAKE_SYSTEM_NAME})
+        if (${SYSTEM_NAME} MATCHES "Windows")
+            if (CMAKE_CL_64)
+                set(SYSTEM_NAME "Win64")
+            else ()
+                set(SYSTEM_NAME "Win32")
+            endif ()
+        endif ()
+
+        string(SUBSTRING "${GIT_COMMIT}" 0 7 COMMIT)
+        set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${SYSTEM_NAME}-${GIT_BRANCH}-${COMMIT}")
+    endif ()
+
+    # Configure file for travis-ci -> bintray deployment
+    if (UNIX AND NOT APPLE)
+        set(BINTRAY_PLATFORM "linux-x64")
+    elseif (APPLE)
+        set(BINTRAY_PLATFORM "macOS")
+    endif ()
+
+    if (NOT GIT_TAG AND GIT_COMMIT AND GIT_BRANCH)
+        set(BINTRAY_VERSION ${PROJECT_VERSION}-${COMMIT})
+    else ()
+        set(BINTRAY_VERSION ${PROJECT_VERSION})
+    endif ()
+
+    configure_file(resources/descriptor.json.in descriptor.json @ONLY)
+
+    set(CPACK_STRIP_FILES "${INSTALL_DIR_RUNTIME}/${CMAKE_PROJECT_NAME}")
+
+    include(CPack)
+endif ()
 
 # ######################################################################### #

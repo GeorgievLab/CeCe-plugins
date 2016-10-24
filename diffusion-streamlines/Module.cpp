@@ -159,12 +159,13 @@ void Module::updateSignal(SignalId id)
                     : max(i2 * ds.getY(), units::Length(0))
                 ;
 
-                return x * y;
+                const auto coord = c + Coordinate(i, j) - OFFSET;
+                return isObstacle(coord) ? units::Area{Zero} : x * y;
             }).normalized();
 
             // Apply matrix
             matrix.for_each([&](size_t i, size_t j, RealType value) {
-                const auto coord = c + Coordinate(j, i) - OFFSET;
+                const auto coord = c + Coordinate(i, j) - OFFSET;
                 Assert(inRange(coord));
                 getSignalBack(id, coord) += signal * value;
                 Assert(getSignalBack(id, coord) >= Zero);

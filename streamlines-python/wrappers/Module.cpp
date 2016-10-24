@@ -127,7 +127,13 @@ public:
         // Get lattice node
         const auto& node = lattice[coord];
 
-        return makeObject(node.getDynamics() == self->value->getWallDynamics()).release();
+        // FIXME: bool segfault
+        //return makeObject(node.getDynamics() == self->value->getWallDynamics()).release();
+
+        if (node.getDynamics() == self->value->getWallDynamics())
+            Py_RETURN_TRUE;
+        else
+            Py_RETURN_FALSE;
     }
 
 

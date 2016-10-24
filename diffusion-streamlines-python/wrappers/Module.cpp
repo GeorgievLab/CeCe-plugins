@@ -26,6 +26,10 @@
 // Must be first
 #include "../../python/Python.hpp"
 
+// CeCe
+#include "cece/core/Assert.hpp"
+#include "cece/core/StringStream.hpp"
+
 // Diffusion
 #include "../../diffusion-streamlines/Module.hpp"
 
@@ -137,6 +141,18 @@ public:
         if (!PyArg_ParseTuple(args, "Oii", &id, &x, &y))
             return nullptr;
 
+        // Check if is in range
+        const auto size = self->value->getGridSize();
+        const auto coord = plugin::diffusion::Module::Coordinate(x, y);
+
+        if (!self->value->inRange(coord))
+        {
+            OutStringStream oss;
+            oss << "Coordinates [" << x << ", " << y << "] out of range [" << size.getWidth() << ", " << size.getHeight() << "]";
+            PyErr_SetString(PyExc_RuntimeError, oss.str().c_str());
+            return nullptr;
+        }
+
         if (PyInt_Check(id) || PyLong_Check(id))
         {
             return makeObject(
@@ -178,6 +194,18 @@ public:
         if (!PyArg_ParseTuple(args, "Oiid", &id, &x, &y, &value))
             return nullptr;
 
+        // Check if is in range
+        const auto size = self->value->getGridSize();
+        const auto coord = plugin::diffusion::Module::Coordinate(x, y);
+
+        if (!self->value->inRange(coord))
+        {
+            OutStringStream oss;
+            oss << "Coordinates [" << x << ", " << y << "] out of range [" << size.getWidth() << ", " << size.getHeight() << "]";
+            PyErr_SetString(PyExc_RuntimeError, oss.str().c_str());
+            return nullptr;
+        }
+
         if (PyInt_Check(id) || PyLong_Check(id))
         {
             self->value->setSignal(
@@ -199,6 +227,48 @@ public:
     }
 
 
+    /**
+     * @brief Set signal value.
+     *
+     * @param self
+     * @param args
+     *
+     * @return
+     */
+    static PyObject* isObstacle(SelfType* self, PyObject* args) noexcept
+    {
+        CECE_ASSERT(self);
+        CECE_ASSERT(self->value);
+        CECE_ASSERT(args);
+
+        int x;
+        int y;
+
+        if (!PyArg_ParseTuple(args, "ii", &x, &y))
+            return nullptr;
+
+        // Check if is in range
+        const auto size = self->value->getGridSize();
+        const auto coord = plugin::diffusion::Module::Coordinate(x, y);
+
+        if (!self->value->inRange(coord))
+        {
+            OutStringStream oss;
+            oss << "Coordinates [" << x << ", " << y << "] out of range [" << size.getWidth() << ", " << size.getHeight() << "]";
+            PyErr_SetString(PyExc_RuntimeError, oss.str().c_str());
+            return nullptr;
+        }
+
+        // FIXME: segfault
+        //return makeObject((int) self->value->isObstacle(coord)).release();
+
+        if (self->value->isObstacle(coord))
+            Py_RETURN_TRUE;
+        else
+            Py_RETURN_FALSE;
+    }
+
+
 // Private Data Members
 private:
 
@@ -210,10 +280,11 @@ private:
     };
 
     /// Type methods
-    PyMethodDef m_methods[4] = {
+    PyMethodDef m_methods[5] = {
         {"getSignalId", (PyCFunction) getSignalId,  METH_VARARGS, nullptr},
         {"getSignal",   (PyCFunction) getSignal,    METH_VARARGS, nullptr},
         {"setSignal",   (PyCFunction) setSignal,    METH_VARARGS, nullptr},
+        {"isObstacle",  (PyCFunction) isObstacle,   METH_VARARGS, nullptr},
         {nullptr}  /* Sentinel */
     };
 

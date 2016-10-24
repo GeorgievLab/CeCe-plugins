@@ -339,7 +339,11 @@ void Module::updateSignal(SignalId id)
     {
         // In obstacle there is no (or shouldn't be) signal
         if (isObstacle(c))
+        {
+            // Copy signal if there is any (mass conservation)
+            setSignalBack(id, c, getSignalFront(id, c));
             continue;
+        }
 
         // Get current signal
         auto signal = getSignalFront(id, c);
@@ -353,13 +357,13 @@ void Module::updateSignal(SignalId id)
 
         // Modify matrix by obstacle presentation
         const auto matrix = convMatrix.transform([&](size_t i, size_t j, RealType value) {
-            const auto coord = c + Coordinate(j, i) - OFFSET;
+            const auto coord = c + Coordinate(i, j) - OFFSET;
             return isObstacle(coord) ? RealType(0) : value;
         }).normalized();
 
         // Diffuse signal to grid cells around
         matrix.for_each([&](size_t i, size_t j, RealType value) {
-            const auto coord = c + Coordinate(j, i) - OFFSET;
+            const auto coord = c + Coordinate(i, j) - OFFSET;
             getSignalBack(id, coord) += signal * value;
             Assert(getSignalBack(id, coord) >= Zero);
         });

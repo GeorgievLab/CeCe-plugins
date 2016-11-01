@@ -149,14 +149,14 @@ void Module::updateSignal(SignalId id)
                 const int i2 = (static_cast<int>(i) - OFFSET);
                 const int j2 = (static_cast<int>(j) - OFFSET);
 
-                const auto x = (j2 == 0)
+                const auto x = (i2 == 0)
                     ? (step.getX() - abs(ds.getX()))
-                    : max(j2 * ds.getX(), units::Length(0))
+                    : max(i2 * ds.getX(), units::Length(0))
                 ;
 
-                const auto y = (i2 == 0)
+                const auto y = (j2 == 0)
                     ? (step.getX() - abs(ds.getY()))
-                    : max(i2 * ds.getY(), units::Length(0))
+                    : max(j2 * ds.getY(), units::Length(0))
                 ;
 
                 const auto coord = c + Coordinate(i, j) - OFFSET;

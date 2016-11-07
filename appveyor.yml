@@ -25,10 +25,10 @@
 
 os: Visual Studio 2015
 
-version: 0.6.1.{build}
+version: 0.6.2.{build}
 
 environment:
-    VERSION: 0.6.1
+    VERSION: 0.6.2
     matrix:
         - GENERATOR: Visual Studio 14 2015 Win64
           CECE_RENDER: On

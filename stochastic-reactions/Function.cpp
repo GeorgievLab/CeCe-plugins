@@ -23,21 +23,14 @@
 /*                                                                          */
 /* ************************************************************************ */
 
-#pragma once
-
-/* ************************************************************************ */
+// Declaration
+#include "Function.hpp"
 
 // CeCe
-#include "cece/core/Real.hpp"
-#include "cece/core/ViewPtr.hpp"
-#include "cece/core/Map.hpp"
-#include "cece/core/Parameters.hpp"
-#include "cece/simulator/Simulation.hpp"
-
-#include "../cell/CellBase.hpp"
+#include "cece/core/Assert.hpp"
 
 // Plugin
-#include "Diffusion.hpp"
+#include "UserFunction.hpp"
 
 /* ************************************************************************ */
 
@@ -47,32 +40,34 @@ namespace stochastic_reactions {
 
 /* ************************************************************************ */
 
-/**
- * @brief Container for important pointers: current Cell and Diffusion.
- */
-struct Context
+RealType Function::eval(const Context& context) const
 {
-    plugin::diffusion::Module* diffusion;
-    plugin::cell::CellBase* cell;
-    const DynamicArray<plugin::diffusion::Module::Coordinate>* coords;
-    const core::Parameters& parameters;
-    const core::Map<String, RealType>& arguments;
+    DynamicArray<RealType> args;
 
-    Context(
-        plugin::diffusion::Module* d,
-        plugin::cell::CellBase* c,
-        const DynamicArray<plugin::diffusion::Module::Coordinate>* cs,
-        const core::Parameters& p,
-        const core::Map<String, RealType>& args)
-        : diffusion(d)
-        , cell(c)
-        , coords(cs)
-        , parameters(p)
-        , arguments(args)
+    for (int i = 0; i < arguments.size(); ++i)
+        args.push_back(arguments[i]->eval(context));
+
+    CECE_ASSERT(function);
+    return function->call(args);
+}
+
+/* ************************************************************************ */
+
+RealType IdentifierCell::eval(const Context& context) const
+{
+    if (context.cell)
     {
-        // Nothing to do
+        // Cell context
+        return context.cell->getMoleculeCount(m_identifier);
     }
-};
+
+    // Function context
+    auto it = context.arguments.find(m_identifier);
+    if (it == context.arguments.end())
+        throw InvalidArgumentException("Argument `" + m_identifier + "` not found");
+
+    return it->second;
+}
 
 /* ************************************************************************ */
 

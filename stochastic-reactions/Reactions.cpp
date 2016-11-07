@@ -76,7 +76,7 @@ void Reactions::call(simulator::Simulation& simulation, object::Object& object, 
         coords = getCoordinates(diffusion->getGridSize(), worldSize, cell);
 
     // start
-    executeReactions(dt, Context(diffusion, cell, &coords, parameters));
+    executeReactions(dt, Context(diffusion, &cell, &coords, parameters, {}));
 }
 
 /* ************************************************************************ */
@@ -148,7 +148,10 @@ void Reactions::executeRules(unsigned int index, const Context& context)
 
         // change molecule count inside the cell
         if (change)
-            context.cell.changeMoleculeCount(moleculeName, change);
+        {
+            CECE_ASSERT(context.cell);
+            context.cell->changeMoleculeCount(moleculeName, change);
+        }
 
         // change molecule count in diffusion
         if (env_change)
@@ -170,7 +173,8 @@ void Reactions::changeMoleculesInEnvironment(const int change, const String& nam
     const auto id = context.diffusion->requireSignalId(name);
 
     // change amount of molecules
-    changeMolecules(context.cell.getSimulation(), *context.diffusion, *context.coords, id, change);
+    CECE_ASSERT(context.cell);
+    changeMolecules(context.cell->getSimulation(), *context.diffusion, *context.coords, id, change);
 }
 
 /* ************************************************************************ */
@@ -208,7 +212,8 @@ PropensityType Reactions::computePropensity(const unsigned int index, const Cont
         // intracellular
         if (m_reactions[index].getRequirement(moleculeIndex) != 0u)
         {
-            const auto number = context.cell.getMoleculeCount(m_moleculeNames[moleculeIndex]);
+            CECE_ASSERT(context.cell);
+            const auto number = context.cell->getMoleculeCount(m_moleculeNames[moleculeIndex]);
             local *= number;
         }
 

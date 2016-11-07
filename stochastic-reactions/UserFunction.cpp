@@ -23,21 +23,12 @@
 /*                                                                          */
 /* ************************************************************************ */
 
-#pragma once
-
-/* ************************************************************************ */
+// Declaration
+#include "UserFunction.hpp"
 
 // CeCe
-#include "cece/core/Real.hpp"
-#include "cece/core/ViewPtr.hpp"
-#include "cece/core/Map.hpp"
-#include "cece/core/Parameters.hpp"
-#include "cece/simulator/Simulation.hpp"
-
-#include "../cell/CellBase.hpp"
-
-// Plugin
-#include "Diffusion.hpp"
+#include "cece/core/Assert.hpp"
+#include "cece/core/Exception.hpp"
 
 /* ************************************************************************ */
 
@@ -47,32 +38,20 @@ namespace stochastic_reactions {
 
 /* ************************************************************************ */
 
-/**
- * @brief Container for important pointers: current Cell and Diffusion.
- */
-struct Context
+RealType UserFunction::call(const DynamicArray<RealType>& args) const
 {
-    plugin::diffusion::Module* diffusion;
-    plugin::cell::CellBase* cell;
-    const DynamicArray<plugin::diffusion::Module::Coordinate>* coords;
-    const core::Parameters& parameters;
-    const core::Map<String, RealType>& arguments;
+    if (args.size() != m_parameters.size())
+        throw InvalidArgumentException("Function `" + m_name + "` called with different number of arguments");
 
-    Context(
-        plugin::diffusion::Module* d,
-        plugin::cell::CellBase* c,
-        const DynamicArray<plugin::diffusion::Module::Coordinate>* cs,
-        const core::Parameters& p,
-        const core::Map<String, RealType>& args)
-        : diffusion(d)
-        , cell(c)
-        , coords(cs)
-        , parameters(p)
-        , arguments(args)
-    {
-        // Nothing to do
-    }
-};
+    Map<String, RealType> arguments;
+
+    // Merge names and values
+    for (int i = 0; i < args.size(); ++i)
+        arguments.emplace(m_parameters[i], args[i]);
+
+    CECE_ASSERT(m_body);
+    return m_body->eval(Context(nullptr, nullptr, nullptr, {}, arguments));
+}
 
 /* ************************************************************************ */
 

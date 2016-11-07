@@ -72,7 +72,7 @@ static void test_impl(
 
     simulator::DefaultSimulation simulation(plugin::Manager::s().getRepository());
     plugin::cell::CellBase cell(simulation);
-    Context context(nullptr, cell, nullptr, simulation.getParameters());
+    Context context(nullptr, &cell, nullptr, simulation.getParameters(), {});
 
     for (auto pair : molecules)
     {
@@ -906,3 +906,50 @@ TEST(Parser, propensities_multiple)
         {5, 30}
     );
 }
+
+/* ************************************************************************ */
+
+TEST(ReactionsParser, functions)
+{
+    auto reactions = ReactionsParser(
+        "def plus(x, y): x + y;\n"
+        "def lenSq(x, y): x * x + y * y;\n"
+        "def lenSq2(x, y): pow(x, 2) + pow(y, 2);\n"
+    ).parse();
+
+    auto plus = reactions.getUserFunction("plus");
+    ASSERT_NE(nullptr, plus);
+
+    EXPECT_FLOAT_EQ(8, plus->call({RealType(5.5), RealType(2.5)}));
+    EXPECT_FLOAT_EQ(0, plus->call({RealType(5.5), RealType(-5.5)}));
+
+    auto lenSq = reactions.getUserFunction("lenSq");
+    ASSERT_NE(nullptr, lenSq);
+
+    EXPECT_FLOAT_EQ(13, lenSq->call({RealType(2), RealType(3)}));
+    EXPECT_FLOAT_EQ(2, lenSq->call({RealType(1), RealType(1)}));
+
+    auto lenSq2 = reactions.getUserFunction("lenSq2");
+    ASSERT_NE(nullptr, lenSq2);
+
+    EXPECT_FLOAT_EQ(13, lenSq2->call({RealType(2), RealType(3)}));
+    EXPECT_FLOAT_EQ(2, lenSq2->call({RealType(1), RealType(1)}));
+}
+
+/* ************************************************************************ */
+
+TEST(ReactionsParser, functionCall)
+{
+    auto reactions = ReactionsParser(
+        "def plus(x, y): x + y;\n"
+        "null > plus(1, 2) > A;\n"
+    ).parse();
+
+    simulator::DefaultSimulation simulation(plugin::Manager::s().getRepository());
+    plugin::cell::CellBase cell(simulation);
+    reactions.call(simulation, cell, units::s(1));
+
+    EXPECT_GT(cell.getMoleculeCount("A"), 0);
+}
+
+/* ************************************************************************ */

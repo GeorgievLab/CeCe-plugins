@@ -47,6 +47,10 @@ namespace stochastic_reactions {
 
 /* ************************************************************************ */
 
+class UserFunction;
+
+/* ************************************************************************ */
+
 /**
  * @brief Parent of all function graph nodes.
  *
@@ -155,31 +159,24 @@ public:
  * @brief Node for inner function.
  *
  */
-template <typename Return>
-struct Function : public Node<Return>
+struct Function : public Node<RealType>
 {
 private:
-    SharedPtr<Node<Return>> root;
+    SharedPtr<const UserFunction> function;
+    DynamicArray<UniquePtr<Node<RealType>>> arguments;
 
 public:
 
-    Return eval(const Context& context) const override
-    {
-        return root->eval(context);
-    }
+    RealType eval(const Context& context) const override;
 
 public:
 
-    Function(SharedPtr<Node<Return>> r):
-    root(r)
+    Function(SharedPtr<const UserFunction> fn, DynamicArray<UniquePtr<Node<RealType>>> arguments)
+        : function(fn)
+        , arguments(std::move(arguments))
     {
         // Nothing to do.
     }
-};
-
-struct FunctionParameter : public Node<RealType>
-{
-
 };
 
 /* ************************************************************************ */
@@ -195,10 +192,7 @@ private:
 
 public:
 
-    RealType eval(const Context& context) const override
-    {
-        return context.cell.getMoleculeCount(m_identifier);
-    }
+    RealType eval(const Context& context) const override;
 
 public:
 

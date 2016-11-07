@@ -27,6 +27,7 @@
 build_test(stochastic-reactions
     SOURCES
         ReactionsParserTest.cpp
+        UserFunctionTest.cpp
     PLUGINS_REQUIRED
         stochastic-reactions
         diffusion

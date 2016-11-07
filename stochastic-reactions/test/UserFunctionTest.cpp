@@ -23,61 +23,60 @@
 /*                                                                          */
 /* ************************************************************************ */
 
-#pragma once
+// C++
+#include <iostream>
 
-/* ************************************************************************ */
-
-// CeCe
-#include "cece/core/Real.hpp"
-#include "cece/core/ViewPtr.hpp"
-#include "cece/core/Map.hpp"
-#include "cece/core/Parameters.hpp"
-#include "cece/simulator/Simulation.hpp"
-
-#include "../cell/CellBase.hpp"
+// GTest
+#include "gtest/gtest.h"
 
 // Plugin
-#include "Diffusion.hpp"
+#include "../UserFunction.hpp"
+#include "../Function.hpp"
 
 /* ************************************************************************ */
 
-namespace cece {
-namespace plugin {
-namespace stochastic_reactions {
+using namespace cece;
+using namespace cece::plugin::stochastic_reactions;
 
 /* ************************************************************************ */
 
-/**
- * @brief Container for important pointers: current Cell and Diffusion.
- */
-struct Context
+TEST(UserFunction, ctor)
 {
-    plugin::diffusion::Module* diffusion;
-    plugin::cell::CellBase* cell;
-    const DynamicArray<plugin::diffusion::Module::Coordinate>* coords;
-    const core::Parameters& parameters;
-    const core::Map<String, RealType>& arguments;
-
-    Context(
-        plugin::diffusion::Module* d,
-        plugin::cell::CellBase* c,
-        const DynamicArray<plugin::diffusion::Module::Coordinate>* cs,
-        const core::Parameters& p,
-        const core::Map<String, RealType>& args)
-        : diffusion(d)
-        , cell(c)
-        , coords(cs)
-        , parameters(p)
-        , arguments(args)
     {
-        // Nothing to do
+        UserFunction fn("function", {}, {});
+        EXPECT_EQ("function", fn.getName());
+        EXPECT_EQ(0, fn.getParameters().size());
     }
-};
+
+    {
+        UserFunction fn("function", {"x", "y"}, {});
+        EXPECT_EQ("function", fn.getName());
+        EXPECT_EQ(2, fn.getParameters().size());
+    }
+}
 
 /* ************************************************************************ */
 
-}
-}
+TEST(UserFunction, call)
+{
+    {
+        UserFunction fn("function", {}, makeUnique<Amount>(RealType(10)));
+
+        EXPECT_FLOAT_EQ(10, fn.call());
+    }
+
+    {
+        UserFunction fn("function", {"x", "y"},
+            // x + y
+            makeUnique<OperatorTwo<std::plus<RealType>>>(
+                makeUnique<IdentifierCell>("x"),
+                makeUnique<IdentifierCell>("y")
+            )
+        );
+
+        EXPECT_FLOAT_EQ(3, fn.call({RealType(1), RealType(2)}));
+        EXPECT_FLOAT_EQ(25, fn.call({RealType(15), RealType(10)}));
+    }
 }
 
 /* ************************************************************************ */

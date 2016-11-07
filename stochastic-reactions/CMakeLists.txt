@@ -35,9 +35,12 @@ build_plugin(stochastic-reactions
         ReactionsParser.cpp
         Context.hpp
         Function.hpp
+        Function.cpp
         Diffusion.hpp
         Diffusion.cpp
         Functors.hpp
+        UserFunction.hpp
+        UserFunction.cpp
     PLUGINS_REQUIRED
         cell
         diffusion

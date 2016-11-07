@@ -104,7 +104,8 @@ enum class TokenCode
     BracketC,
     CurlyO,
     CurlyC,
-    Function
+    Function,
+    Definition
 };
 
 /* ************************************************************************ */
@@ -138,218 +139,24 @@ public:
      *
      * @return
      */
-    TokenType tokenizeIdentifier() noexcept
-    {
-        // initialize token
-        TokenType token{TokenCode::Identifier};
-        // fill the string
-        do
-        {
-            token.value.push_back(value());
-            next();
-        }
-        while (isIdentifierRest());
+    TokenType tokenizeIdentifier() noexcept;
 
-        skipWhitespace();
 
-        // check if string is keyword
-        if (token.value == "and")
-            token.code = TokenCode::And;
-        else if (token.value == "or")
-            token.code = TokenCode::Or;
-        else if (token.value == "if")
-            token.code = TokenCode::If;
-        else if (token.value == "not")
-            token.code = TokenCode::Not;
-        else if (token.value == "null")
-            token.code = TokenCode::Null;
-        else if (token.value == "env")
-            token.code = TokenCode::Env;
-        else if (token.value == "par")
-            token.code = TokenCode::Parameter;
-        // ...or function name
-        else if (value() == '(')
-        {
-            token.code = TokenCode::Function;
-            next();
-        }
+    /**
+     * @brief      Tokenizer number.
+     *
+     * @return     Token type.
+     */
+    TokenType tokenizeNumber();
 
-        return token;
-    }
-
-    TokenType tokenizeNumber()
-    {
-        TokenType token{TokenCode::Number};
-        // fill
-        do
-        {
-            token.value.push_back(value());
-            next();
-        }
-        while (isDigit());
-
-        // check for decimal point
-        if (is('.'))
-        {
-            // add decimal point
-            token.value.push_back(value());
-            next();
-            // require at least one digit after decimal point
-            if (!isDigit())
-                throw IncorrectNumberFormatException();
-            // fill
-            do
-            {
-                token.value.push_back(value());
-                next();
-            }
-            while (isDigit());
-        }
-
-        // check for exponent sign
-        if (is('e') || is('E'))
-        {
-            // add exponent sign
-            token.value.push_back(value());
-            next();
-            // optional sign character
-            if (is('-') || is('+'))
-            {
-                token.value.push_back(value());
-                next();
-            }
-            // require at least one digit after exponent sign
-            if (!isDigit())
-                throw IncorrectNumberFormatException();
-            // fill
-            do
-            {
-                token.value.push_back(value());
-                next();
-            }
-            while (isDigit());
-        }
-
-        // units appendix
-        if (isIdentifierBegin() || is('/'))
-        {
-            token.code = TokenCode::Units;
-            do
-            {
-                token.value.push_back(value());
-                next();
-            }
-            while (isIdentifierBegin());
-            if (is('/'))
-            {
-                do
-                {
-                    token.value.push_back(value());
-                    next();
-                }
-                while (isIdentifierBegin());
-            }
-        }
-
-        return token;
-    }
 
     /**
      * @brief Main tokenize function.
      *
      * @return
      */
-    TokenType tokenize()
-    {
-        skipWhitespace();
+    TokenType tokenize();
 
-        // Skip comments
-        while (is('#'))
-        {
-            find('\n', '\r');
-            skipWhitespace();
-        }
-
-        // Number
-        if(isDigit())
-            return tokenizeNumber();
-
-        // Identifier
-        if (isIdentifierBegin())
-            return tokenizeIdentifier();
-
-        // Operators
-        switch (value())
-        {
-        case '-':
-            next();
-            if (match('>'))
-                return TokenType{TokenCode::ArrowFwrd};
-            return TokenType{TokenCode::Minus};
-        case '>':
-            next();
-            if (match('='))
-                return TokenType{TokenCode::GreaterEqual};
-            return TokenType{TokenCode::Greater};
-        case '<':
-            next();
-            if (match('-'))
-                return TokenType{TokenCode::ArrowBack};
-            if (match('='))
-                return TokenType{TokenCode::LessEqual};
-            return TokenType{TokenCode::Less};
-        case '=':
-            next();
-            if (match('<'))
-                return TokenType{TokenCode::LessEqual};
-            if (match('>'))
-                return TokenType{TokenCode::GreaterEqual};
-            if (match('='))
-                return TokenType{TokenCode::Equal};
-            return TokenType{TokenCode::Equal};
-        case '!':
-            next();
-            if (match('='))
-                return TokenType{TokenCode::NotEqual};
-            throw UnknownOperatorException();
-        case ':':
-            next();
-            return TokenType{TokenCode::Colon};
-        case '+':
-            next();
-            return TokenType{TokenCode::Plus};
-        case '*':
-            next();
-            return TokenType{TokenCode::Multiply};
-        case '/':
-            next();
-            return TokenType{TokenCode::Divide};
-        case '^':
-            next();
-            return TokenType{TokenCode::Power};
-        case ';':
-            next();
-            return TokenType{TokenCode::Semicolon};
-        case ',':
-            next();
-            return TokenType{TokenCode::Comma};
-        case '(':
-            next();
-            return TokenType{TokenCode::BracketO};
-        case ')':
-            next();
-            return TokenType{TokenCode::BracketC};
-        case '{':
-            next();
-            return TokenType{TokenCode::CurlyO};
-        case '}':
-            next();
-            return TokenType{TokenCode::CurlyC};
-        }
-        // move to next character and return invalid
-        next();
-        return TokenType{};
-    }
 
 // Protected Operations
 protected:
@@ -410,7 +217,6 @@ protected:
 
 };
 
-/* ************************************************************************ */
 /* ************************************************************************ */
 
 /**

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<simulation world-size="160um 90um" dt="0.5s" iterations="1000" background="black" visualized="false">
+
+  <plugin name="stochastic-reactions" />
+  <plugin name="cell" />
+
+  <parameter name="K1" value="3" />
+
+  <program name="example" language="stochastic-reactions"><![CDATA[
+  def plus(x, y): x + y;
+  def minus(x, y): x - y;
+  def f(x): minus(plus(x, x), x);
+
+  null > par K1 > M1;
+  null > plus(1, 2) > M2;
+  null > plus(1, plus(1, 1)) > M3;
+  null > minus(plus(3, 2), plus(1, 1)) > M4;
+  null > f(par K1) > M5;
+  null > f(M0) > M6;
+]]></program>
+
+  <object class="cell.Yeast" type="static" position="0 0" programs="example cell.store-molecules">
+    <molecule name="M0" amount="3" />
+  </object>
+
+</simulation>
+
+

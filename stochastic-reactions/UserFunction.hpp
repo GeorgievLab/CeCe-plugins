@@ -29,15 +29,11 @@
 
 // CeCe
 #include "cece/core/Real.hpp"
-#include "cece/core/ViewPtr.hpp"
-#include "cece/core/Map.hpp"
-#include "cece/core/Parameters.hpp"
-#include "cece/simulator/Simulation.hpp"
-
-#include "../cell/CellBase.hpp"
+#include "cece/core/String.hpp"
+#include "cece/core/DynamicArray.hpp"
 
 // Plugin
-#include "Diffusion.hpp"
+#include "Function.hpp"
 
 /* ************************************************************************ */
 
@@ -48,30 +44,88 @@ namespace stochastic_reactions {
 /* ************************************************************************ */
 
 /**
- * @brief Container for important pointers: current Cell and Diffusion.
+ * @brief      User defined function.
  */
-struct Context
+class UserFunction
 {
-    plugin::diffusion::Module* diffusion;
-    plugin::cell::CellBase* cell;
-    const DynamicArray<plugin::diffusion::Module::Coordinate>* coords;
-    const core::Parameters& parameters;
-    const core::Map<String, RealType>& arguments;
 
-    Context(
-        plugin::diffusion::Module* d,
-        plugin::cell::CellBase* c,
-        const DynamicArray<plugin::diffusion::Module::Coordinate>* cs,
-        const core::Parameters& p,
-        const core::Map<String, RealType>& args)
-        : diffusion(d)
-        , cell(c)
-        , coords(cs)
-        , parameters(p)
-        , arguments(args)
+// Public Ctors & Dtors
+public:
+
+
+    /**
+     * @brief      Default ctor.
+     */
+    UserFunction() = default;
+
+
+    /**
+     * @brief      Constructor.
+     *
+     * @param[in]  name    The function name.
+     * @param[in]  params  The function parameter names.
+     * @param[in]  body    The function body.
+     */
+    explicit UserFunction(String name, DynamicArray<String> params, SharedPtr<Node<RealType>> body) noexcept
+        : m_name(std::move(name))
+        , m_parameters(std::move(params))
+        , m_body(std::move(body))
     {
         // Nothing to do
     }
+
+
+// Public Accessors & Mutators
+public:
+
+
+    /**
+     * @brief      Returns function name.
+     *
+     * @return     The function name.
+     */
+    const String& getName() const noexcept
+    {
+        return m_name;
+    }
+
+
+    /**
+     * @brief      Returns function parameters.
+     *
+     * @return     The parameters.
+     */
+    const DynamicArray<String>& getParameters() const noexcept
+    {
+        return m_parameters;
+    }
+
+
+// Public Operations
+public:
+
+
+    /**
+     * @brief      Call user function.
+     *
+     * @param[in]  args  Call arguments.
+     *
+     * @return     Result value.
+     */
+    RealType call(const DynamicArray<RealType>& args = {}) const;
+
+
+// Public Operations
+public:
+
+    /// Function name.
+    String m_name;
+
+    /// Parameter names.
+    DynamicArray<String> m_parameters;
+
+    /// Function body.
+    SharedPtr<Node<RealType>> m_body;
 };
 
 /* ************************************************************************ */

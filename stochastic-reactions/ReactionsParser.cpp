@@ -41,6 +41,222 @@ namespace stochastic_reactions {
 
 /* ************************************************************************ */
 
+Tokenizer::TokenType Tokenizer::tokenizeIdentifier() noexcept
+{
+    // initialize token
+    TokenType token{TokenCode::Identifier};
+    // fill the string
+    do
+    {
+        token.value.push_back(value());
+        next();
+    }
+    while (isIdentifierRest());
+
+    skipWhitespace();
+
+    // check if string is keyword
+    if (token.value == "and")
+        token.code = TokenCode::And;
+    else if (token.value == "or")
+        token.code = TokenCode::Or;
+    else if (token.value == "if")
+        token.code = TokenCode::If;
+    else if (token.value == "not")
+        token.code = TokenCode::Not;
+    else if (token.value == "null")
+        token.code = TokenCode::Null;
+    else if (token.value == "env")
+        token.code = TokenCode::Env;
+    else if (token.value == "par")
+        token.code = TokenCode::Parameter;
+    else if (token.value == "def")
+        token.code = TokenCode::Definition;
+    // ...or function name
+    else if (value() == '(')
+    {
+        token.code = TokenCode::Function;
+        next();
+    }
+
+    return token;
+}
+
+/* ************************************************************************ */
+
+Tokenizer::TokenType Tokenizer::tokenizeNumber()
+{
+    TokenType token{TokenCode::Number};
+    // fill
+    do
+    {
+        token.value.push_back(value());
+        next();
+    }
+    while (isDigit());
+
+    // check for decimal point
+    if (is('.'))
+    {
+        // add decimal point
+        token.value.push_back(value());
+        next();
+        // require at least one digit after decimal point
+        if (!isDigit())
+            throw IncorrectNumberFormatException();
+        // fill
+        do
+        {
+            token.value.push_back(value());
+            next();
+        }
+        while (isDigit());
+    }
+
+    // check for exponent sign
+    if (is('e') || is('E'))
+    {
+        // add exponent sign
+        token.value.push_back(value());
+        next();
+        // optional sign character
+        if (is('-') || is('+'))
+        {
+            token.value.push_back(value());
+            next();
+        }
+        // require at least one digit after exponent sign
+        if (!isDigit())
+            throw IncorrectNumberFormatException();
+        // fill
+        do
+        {
+            token.value.push_back(value());
+            next();
+        }
+        while (isDigit());
+    }
+
+    // units appendix
+    if (isIdentifierBegin() || is('/'))
+    {
+        token.code = TokenCode::Units;
+        do
+        {
+            token.value.push_back(value());
+            next();
+        }
+        while (isIdentifierBegin());
+        if (is('/'))
+        {
+            do
+            {
+                token.value.push_back(value());
+                next();
+            }
+            while (isIdentifierBegin());
+        }
+    }
+
+    return token;
+}
+
+/* ************************************************************************ */
+
+Tokenizer::TokenType Tokenizer::tokenize()
+{
+    skipWhitespace();
+
+    // Skip comments
+    while (is('#'))
+    {
+        find('\n', '\r');
+        skipWhitespace();
+    }
+
+    // Number
+    if(isDigit())
+        return tokenizeNumber();
+
+    // Identifier
+    if (isIdentifierBegin())
+        return tokenizeIdentifier();
+
+    // Operators
+    switch (value())
+    {
+    case '-':
+        next();
+        if (match('>'))
+            return TokenType{TokenCode::ArrowFwrd};
+        return TokenType{TokenCode::Minus};
+    case '>':
+        next();
+        if (match('='))
+            return TokenType{TokenCode::GreaterEqual};
+        return TokenType{TokenCode::Greater};
+    case '<':
+        next();
+        if (match('-'))
+            return TokenType{TokenCode::ArrowBack};
+        if (match('='))
+            return TokenType{TokenCode::LessEqual};
+        return TokenType{TokenCode::Less};
+    case '=':
+        next();
+        if (match('<'))
+            return TokenType{TokenCode::LessEqual};
+        if (match('>'))
+            return TokenType{TokenCode::GreaterEqual};
+        if (match('='))
+            return TokenType{TokenCode::Equal};
+        return TokenType{TokenCode::Equal};
+    case '!':
+        next();
+        if (match('='))
+            return TokenType{TokenCode::NotEqual};
+        throw UnknownOperatorException();
+    case ':':
+        next();
+        return TokenType{TokenCode::Colon};
+    case '+':
+        next();
+        return TokenType{TokenCode::Plus};
+    case '*':
+        next();
+        return TokenType{TokenCode::Multiply};
+    case '/':
+        next();
+        return TokenType{TokenCode::Divide};
+    case '^':
+        next();
+        return TokenType{TokenCode::Power};
+    case ';':
+        next();
+        return TokenType{TokenCode::Semicolon};
+    case ',':
+        next();
+        return TokenType{TokenCode::Comma};
+    case '(':
+        next();
+        return TokenType{TokenCode::BracketO};
+    case ')':
+        next();
+        return TokenType{TokenCode::BracketC};
+    case '{':
+        next();
+        return TokenType{TokenCode::CurlyO};
+    case '}':
+        next();
+        return TokenType{TokenCode::CurlyC};
+    }
+    // move to next character and return invalid
+    next();
+    return TokenType{};
+}
+
+/* ************************************************************************ */
+
 Reactions ReactionsParser::parse()
 {
     // parse global variables and functions
@@ -115,7 +331,34 @@ void ReactionsParser::parseReaction()
 
 void ReactionsParser::parseGlobals()
 {
+    // 'def' IDENTIFIER '(' PARAMETERS ')' ':' EXPRESSION
+    while (match(TokenCode::Definition))
+    {
+        auto name = token().value;
+        requireNext(TokenCode::Function);
 
+        DynamicArray<String> parameters;
+
+        // PARAMETERS
+        while (true)
+        {
+            // Parameter name
+            parameters.push_back(token().value);
+            requireNext(TokenCode::Identifier);
+
+            if (!match(TokenCode::Comma))
+                break;
+        }
+
+        requireNext(TokenCode::BracketC);
+        requireNext(TokenCode::Colon);
+
+        m_reactions.addUserFunction(
+            makeShared<const UserFunction>(std::move(name), std::move(parameters), parsePlus())
+        );
+
+        requireNext(TokenCode::Semicolon);
+    }
 }
 
 /* *********************************************************************** */
@@ -175,17 +418,7 @@ UniquePtr<Node<bool>> ReactionsParser::parseBParenthesis()
 
 UniquePtr<Node<bool>> ReactionsParser::parseBoolFunction()
 {
-    if(!is(TokenCode::Function))
-        return parseNot();
-
-    auto ptr = m_reactions.getGlobalBoolFunction(token().value);
-
-    if (ptr == nullptr)
-        throw UnknownFunctionException();
-
-    next();
-
-    return makeUnique<Function<bool>>(ptr);
+    return parseNot();
 }
 
 /* ************************************************************************ */
@@ -322,17 +555,6 @@ UniquePtr<Node<RealType>> ReactionsParser::parseFunction()
     String name = token().value;
     next();
 
-    // No parameters means predefined function
-    if (match(TokenCode::BracketC))
-    {
-        auto ptr = m_reactions.getGlobalRealFunction(name);
-
-        if (ptr == nullptr)
-            throw UnknownFunctionException();
-
-        return makeUnique<Function<RealType>>(ptr);
-    }
-
     DynamicArray<UniquePtr<Node<RealType>>> nodes;
 
     // Read Nodes
@@ -427,6 +649,12 @@ UniquePtr<Node<RealType>> ReactionsParser::parseFunction()
         if (name == "hill")
             return makeUnique<OperatorThree<Hill<RealType>>>(std::move(nodes[0]), std::move(nodes[1]), std::move(nodes[2]));
     }
+
+    // Get user function
+    auto fn = m_reactions.getUserFunction(name);
+
+    if (fn)
+        return makeUnique<Function>(std::move(fn), std::move(nodes));
 
     throw UnknownFunctionException();
 }

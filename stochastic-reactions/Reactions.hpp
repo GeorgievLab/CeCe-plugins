@@ -49,6 +49,7 @@
 #include "Context.hpp"
 #include "Reaction.hpp"
 #include "Function.hpp"
+#include "UserFunction.hpp"
 
 /* ************************************************************************ */
 
@@ -226,30 +227,28 @@ public:
 
 
     /**
-     * @brief Searches global bool functions for the one with given ID
+     * @brief      Register new user function.
      *
-     * @return
+     * @param[in]  function  The function definition.
      */
-    inline SharedPtr<Node<bool>> getGlobalBoolFunction(const String& id) const
+    void addUserFunction(SharedPtr<const UserFunction> function)
     {
-        auto search = m_boolFunctions.find(id);
-        if(search != m_boolFunctions.end())
-            return search->second;
-        return nullptr;
+        auto name = function->getName();
+        m_userFunctions.emplace(std::move(name), std::move(function));
     }
 
 
     /**
-     * @brief Searches global real functions for the one with given ID
+     * @brief      Searches user functions for the one with given ID
      *
-     * @return
+     * @param[in]  name
+     *
+     * @return     The user function or nullptr.
      */
-    inline SharedPtr<Node<RealType>> getGlobalRealFunction(const String& id) const
+    SharedPtr<const UserFunction> getUserFunction(const String& name) const noexcept
     {
-        auto search = m_realFunctions.find(id);
-        if(search != m_realFunctions.end())
-            return search->second;
-        return nullptr;
+        auto it = m_userFunctions.find(name);
+        return it != m_userFunctions.end() ? it->second : nullptr;
     }
 
 
@@ -363,8 +362,7 @@ private:
     DynamicArray<PropensityType> m_propensities;
 
     /// Map of global defined functions.
-    Map<String, SharedPtr<Node<bool>>> m_boolFunctions;
-    Map<String, SharedPtr<Node<RealType>>> m_realFunctions;
+    Map<String, SharedPtr<const UserFunction>> m_userFunctions;
 };
 
 /* ************************************************************************ */

@@ -112,7 +112,7 @@ public:
      *
      * @return     Result value.
      */
-    RealType call(const DynamicArray<RealType>& args = {}) const;
+    RealType call(const Context& context, const DynamicArray<RealType>& args = {}) const;
 
 
 // Public Operations

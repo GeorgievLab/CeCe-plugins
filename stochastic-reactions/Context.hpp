@@ -52,22 +52,24 @@ namespace stochastic_reactions {
  */
 struct Context
 {
-    plugin::diffusion::Module* diffusion;
-    plugin::cell::CellBase* cell;
-    const DynamicArray<plugin::diffusion::Module::Coordinate>* coords;
-    const core::Parameters& parameters;
-    const core::Map<String, RealType>& arguments;
+    simulator::Simulation* simulation = nullptr;
+    plugin::diffusion::Module* diffusion = nullptr;
+    plugin::cell::CellBase* cell = nullptr;
+    const DynamicArray<plugin::diffusion::Module::Coordinate>* coords = nullptr;
+    const core::Map<String, RealType>* arguments = nullptr;
+
+    Context() = default;
 
     Context(
+        simulator::Simulation* simulation,
         plugin::diffusion::Module* d,
         plugin::cell::CellBase* c,
         const DynamicArray<plugin::diffusion::Module::Coordinate>* cs,
-        const core::Parameters& p,
-        const core::Map<String, RealType>& args)
-        : diffusion(d)
+        const core::Map<String, RealType>* args)
+        : simulation(simulation)
+        , diffusion(d)
         , cell(c)
         , coords(cs)
-        , parameters(p)
         , arguments(args)
     {
         // Nothing to do

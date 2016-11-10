@@ -62,7 +62,7 @@ TEST(UserFunction, call)
     {
         UserFunction fn("function", {}, makeUnique<Amount>(RealType(10)));
 
-        EXPECT_FLOAT_EQ(10, fn.call());
+        EXPECT_FLOAT_EQ(10, fn.call(Context{}));
     }
 
     {
@@ -74,8 +74,8 @@ TEST(UserFunction, call)
             )
         );
 
-        EXPECT_FLOAT_EQ(3, fn.call({RealType(1), RealType(2)}));
-        EXPECT_FLOAT_EQ(25, fn.call({RealType(15), RealType(10)}));
+        EXPECT_FLOAT_EQ(3, fn.call(Context{}, {RealType(1), RealType(2)}));
+        EXPECT_FLOAT_EQ(25, fn.call(Context{}, {RealType(15), RealType(10)}));
     }
 }
 

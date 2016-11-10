@@ -48,25 +48,66 @@ RealType Function::eval(const Context& context) const
         args.push_back(arguments[i]->eval(context));
 
     CECE_ASSERT(function);
-    return function->call(args);
+    return function->call(context, args);
 }
 
 /* ************************************************************************ */
 
 RealType IdentifierCell::eval(const Context& context) const
 {
-    if (context.cell)
+    if (context.arguments != nullptr)
     {
-        // Cell context
-        return context.cell->getMoleculeCount(m_identifier);
+        // Function context
+        auto it = context.arguments->find(m_identifier);
+        if (it != context.arguments->end())
+            return it->second;
     }
 
-    // Function context
-    auto it = context.arguments.find(m_identifier);
-    if (it == context.arguments.end())
-        throw InvalidArgumentException("Argument `" + m_identifier + "` not found");
+    if (context.cell == nullptr)
+        return 0;
 
-    return it->second;
+    // Cell context
+    return context.cell->getMoleculeCount(m_identifier);
+}
+
+/* ************************************************************************ */
+
+RealType IdentifierEnv::eval(const Context& context) const
+{
+    if (context.diffusion == nullptr)
+        return 0;
+
+    const auto id = context.diffusion->getSignalId(m_identifier);
+
+    if (id == plugin::diffusion::Module::INVALID_SIGNAL_ID)
+        return 0;
+
+    return getMolarConcentration(*context.diffusion, *context.coords, id).value();
+}
+
+/* ************************************************************************ */
+
+RealType IdentifierEnvNo::eval(const Context& context) const
+{
+    if (context.diffusion == nullptr || context.simulation == nullptr)
+        return 0;
+
+    const auto id = context.diffusion->getSignalId(m_identifier);
+
+    if (id == plugin::diffusion::Module::INVALID_SIGNAL_ID)
+        return 0;
+
+    return getAmountOfMolecules(*context.simulation, *context.diffusion, *context.coords, id);
+}
+
+/* ************************************************************************ */
+
+RealType IdentifierPar::eval(const Context& context) const
+{
+    if (context.simulation == nullptr)
+        return 0;
+
+    return units::parse(context.simulation->getParameters().get(m_identifier));
 }
 
 /* ************************************************************************ */

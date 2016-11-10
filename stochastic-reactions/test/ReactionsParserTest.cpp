@@ -37,6 +37,7 @@
 
 // Plugins
 #include "../../cell/CellBase.hpp"
+#include "../../diffusion/Module.hpp"
 
 // Plugin
 #include "../ReactionsParser.hpp"
@@ -72,7 +73,7 @@ static void test_impl(
 
     simulator::DefaultSimulation simulation(plugin::Manager::s().getRepository());
     plugin::cell::CellBase cell(simulation);
-    Context context(nullptr, &cell, nullptr, simulation.getParameters(), {});
+    Context context(&simulation, nullptr, &cell, nullptr, nullptr);
 
     for (auto pair : molecules)
     {
@@ -917,23 +918,25 @@ TEST(ReactionsParser, functions)
         "def lenSq2(x, y): pow(x, 2) + pow(y, 2);\n"
     ).parse();
 
+    Context ctx;
+
     auto plus = reactions.getUserFunction("plus");
     ASSERT_NE(nullptr, plus);
 
-    EXPECT_FLOAT_EQ(8, plus->call({RealType(5.5), RealType(2.5)}));
-    EXPECT_FLOAT_EQ(0, plus->call({RealType(5.5), RealType(-5.5)}));
+    EXPECT_FLOAT_EQ(8, plus->call(ctx, {RealType(5.5), RealType(2.5)}));
+    EXPECT_FLOAT_EQ(0, plus->call(ctx, {RealType(5.5), RealType(-5.5)}));
 
     auto lenSq = reactions.getUserFunction("lenSq");
     ASSERT_NE(nullptr, lenSq);
 
-    EXPECT_FLOAT_EQ(13, lenSq->call({RealType(2), RealType(3)}));
-    EXPECT_FLOAT_EQ(2, lenSq->call({RealType(1), RealType(1)}));
+    EXPECT_FLOAT_EQ(13, lenSq->call(ctx, {RealType(2), RealType(3)}));
+    EXPECT_FLOAT_EQ(2, lenSq->call(ctx, {RealType(1), RealType(1)}));
 
     auto lenSq2 = reactions.getUserFunction("lenSq2");
     ASSERT_NE(nullptr, lenSq2);
 
-    EXPECT_FLOAT_EQ(13, lenSq2->call({RealType(2), RealType(3)}));
-    EXPECT_FLOAT_EQ(2, lenSq2->call({RealType(1), RealType(1)}));
+    EXPECT_FLOAT_EQ(13, lenSq2->call(ctx, {RealType(2), RealType(3)}));
+    EXPECT_FLOAT_EQ(2, lenSq2->call(ctx, {RealType(1), RealType(1)}));
 }
 
 /* ************************************************************************ */
@@ -948,8 +951,54 @@ TEST(ReactionsParser, functionCall)
     simulator::DefaultSimulation simulation(plugin::Manager::s().getRepository());
     plugin::cell::CellBase cell(simulation);
     reactions.call(simulation, cell, units::s(1));
+    EXPECT_FLOAT_EQ(3, reactions.evalRate(0, Context(&simulation, nullptr, &cell, nullptr, nullptr)));
 
     EXPECT_GT(cell.getMoleculeCount("A"), 0);
+}
+
+/* ************************************************************************ */
+
+TEST(ReactionsParser, diffusion)
+{
+    simulator::DefaultSimulation simulation(plugin::Manager::s().getRepository());
+    plugin::cell::CellBase cell(simulation);
+    plugin::diffusion::Module diffusion(simulation);
+    diffusion.setGridSize({1, 1});
+    diffusion.registerSignal("A", {});
+    diffusion.setSignal("A", {0, 0}, units::nM(2));
+    DynamicArray<plugin::diffusion::Module::Coordinate> coords{{0, 0}};
+    Context context(&simulation, &diffusion, &cell, &coords, nullptr);
+
+    auto reactions = ReactionsParser("if env A > 1nM: null > env A > GFP;").parse();
+
+    EXPECT_TRUE(reactions.evalCond(0, context));
+
+    diffusion.setSignal("A", {0, 0}, units::nM(0.5));
+
+    EXPECT_FALSE(reactions.evalCond(0, context));
+    EXPECT_FLOAT_EQ(units::nM(0.5).value(), reactions.evalRate(0, context));
+}
+
+/* ************************************************************************ */
+
+TEST(ReactionsParser, envNo)
+{
+    // Avogadro constant
+    constexpr units::Inverse<units::AmountOfSubstance>::type NA = 6.022140857e23 / units::mol(1);
+
+    simulator::DefaultSimulation simulation(plugin::Manager::s().getRepository());
+    simulation.setWorldSize({units::um(1), units::um(1)});
+    plugin::cell::CellBase cell(simulation);
+    plugin::diffusion::Module diffusion(simulation);
+    diffusion.setGridSize({1, 1});
+    diffusion.registerSignal("A", {});
+    diffusion.setSignal("A", {0, 0}, 100 / (NA * units::um3(1)));
+    DynamicArray<plugin::diffusion::Module::Coordinate> coords{{0, 0}};
+    Context context(&simulation, &diffusion, &cell, &coords, nullptr);
+
+    auto reactions = ReactionsParser("null > envN A > GFP;").parse();
+
+    EXPECT_FLOAT_EQ(100, (reactions.evalRate(0, context)));
 }
 
 /* ************************************************************************ */

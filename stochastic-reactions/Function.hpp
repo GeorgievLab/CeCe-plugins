@@ -30,6 +30,7 @@
 // CeCe
 #include "cece/core/UniquePtr.hpp"
 #include "cece/core/UnitIo.hpp"
+#include "cece/core/Log.hpp"
 
 // Plugins
 #include "../cell/CellBase.hpp"
@@ -113,7 +114,9 @@ public:
 
     typename OperatorType::result_type eval(const Context& context) const override
     {
-        return OperatorType{}(m_left->eval(context), m_right->eval(context));
+        const auto left = m_left->eval(context);
+        const auto right = m_right->eval(context);
+        return OperatorType{}(left, right);
     }
 
 public:
@@ -214,22 +217,32 @@ private:
 
 public:
 
-    RealType eval(const Context& context) const override
-    {
-        if (context.diffusion == nullptr)
-            return 0;
-
-        const auto id = context.diffusion->getSignalId(m_identifier);
-
-        if (id == plugin::diffusion::Module::INVALID_SIGNAL_ID)
-            return 0;
-
-        return getMolarConcentration(*context.diffusion, *context.coords, id).value();
-    }
+    RealType eval(const Context& context) const override;
 
 public:
 
     IdentifierEnv(const String& identifier):
+    m_identifier(identifier)
+    {
+        // Nothing to do.
+    }
+};
+
+/**
+ * @brief Leaf which uses context from diffusion.
+ */
+struct IdentifierEnvNo : public Node<RealType>
+{
+private:
+    String m_identifier;
+
+public:
+
+    RealType eval(const Context& context) const override;
+
+public:
+
+    IdentifierEnvNo(const String& identifier):
     m_identifier(identifier)
     {
         // Nothing to do.
@@ -272,10 +285,7 @@ private:
 
 public:
 
-    RealType eval(const Context& context) const override
-    {
-        return units::parse(context.parameters.get(m_identifier));
-    }
+    RealType eval(const Context& context) const override;
 
 public:
 

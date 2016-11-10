@@ -68,6 +68,8 @@ Tokenizer::TokenType Tokenizer::tokenizeIdentifier() noexcept
         token.code = TokenCode::Null;
     else if (token.value == "env")
         token.code = TokenCode::Env;
+    else if (token.value == "envN")
+        token.code = TokenCode::EnvN;
     else if (token.value == "par")
         token.code = TokenCode::Parameter;
     else if (token.value == "def")
@@ -680,6 +682,15 @@ UniquePtr<Node<RealType>> ReactionsParser::parseLeaf()
         next();
         return makeUnique<IdentifierEnv>(identifier);
     }
+
+    if (match(TokenCode::EnvN))
+    {
+        require(TokenCode::Identifier);
+        String identifier = token().value;
+        next();
+        return makeUnique<IdentifierEnvNo>(identifier);
+    }
+
     if(match(TokenCode::Parameter))
     {
         require(TokenCode::Identifier);

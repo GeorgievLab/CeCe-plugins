@@ -99,6 +99,7 @@ enum class TokenCode
     LessEqual,
     Null,
     Env,
+    EnvN,
     Parameter,
     BracketO,
     BracketC,

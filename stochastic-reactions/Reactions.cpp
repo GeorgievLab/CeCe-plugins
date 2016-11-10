@@ -68,7 +68,6 @@ void Reactions::call(simulator::Simulation& simulation, object::Object& object, 
     // get context
     auto& cell = object.castThrow<cell::CellBase>();
     const auto& worldSize = simulation.getWorldSize();
-    const auto& parameters = simulation.getParameters();
 
     auto diffusion = simulation.getModule<plugin::diffusion::Module>("diffusion");
     DynamicArray<plugin::diffusion::Module::Coordinate> coords;
@@ -76,7 +75,7 @@ void Reactions::call(simulator::Simulation& simulation, object::Object& object, 
         coords = getCoordinates(diffusion->getGridSize(), worldSize, cell);
 
     // start
-    executeReactions(dt, Context(diffusion, &cell, &coords, parameters, {}));
+    executeReactions(dt, Context(&simulation, diffusion, &cell, &coords, nullptr));
 }
 
 /* ************************************************************************ */

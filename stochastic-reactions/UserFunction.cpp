@@ -38,7 +38,7 @@ namespace stochastic_reactions {
 
 /* ************************************************************************ */
 
-RealType UserFunction::call(const DynamicArray<RealType>& args) const
+RealType UserFunction::call(const Context& context, const DynamicArray<RealType>& args) const
 {
     if (args.size() != m_parameters.size())
         throw InvalidArgumentException("Function `" + m_name + "` called with different number of arguments");
@@ -50,7 +50,7 @@ RealType UserFunction::call(const DynamicArray<RealType>& args) const
         arguments.emplace(m_parameters[i], args[i]);
 
     CECE_ASSERT(m_body);
-    return m_body->eval(Context(nullptr, nullptr, nullptr, {}, arguments));
+    return m_body->eval(Context(context.simulation, context.diffusion, context.cell, context.coords, &arguments));
 }
 
 /* ************************************************************************ */

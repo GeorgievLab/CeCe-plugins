@@ -913,12 +913,16 @@ TEST(Parser, propensities_multiple)
 TEST(ReactionsParser, functions)
 {
     auto reactions = ReactionsParser(
+        "def gen(): 1;\n"
         "def plus(x, y): x + y;\n"
         "def lenSq(x, y): x * x + y * y;\n"
         "def lenSq2(x, y): pow(x, 2) + pow(y, 2);\n"
     ).parse();
 
     Context ctx;
+
+    auto gen = reactions.getUserFunction("gen");
+    ASSERT_NE(nullptr, gen);
 
     auto plus = reactions.getUserFunction("plus");
     ASSERT_NE(nullptr, plus);

@@ -341,15 +341,18 @@ void ReactionsParser::parseGlobals()
 
         DynamicArray<String> parameters;
 
-        // PARAMETERS
-        while (true)
+        if (!is(TokenCode::BracketC))
         {
-            // Parameter name
-            parameters.push_back(token().value);
-            requireNext(TokenCode::Identifier);
+            // PARAMETERS
+            while (true)
+            {
+                // Parameter name
+                parameters.push_back(token().value);
+                requireNext(TokenCode::Identifier);
 
-            if (!match(TokenCode::Comma))
-                break;
+                if (!match(TokenCode::Comma))
+                    break;
+            }
         }
 
         requireNext(TokenCode::BracketC);
@@ -559,12 +562,15 @@ UniquePtr<Node<RealType>> ReactionsParser::parseFunction()
 
     DynamicArray<UniquePtr<Node<RealType>>> nodes;
 
-    // Read Nodes
-    do
+    if (!is(TokenCode::BracketC))
     {
-        nodes.push_back(parsePlus());
+        // Read Nodes
+        do
+        {
+            nodes.push_back(parsePlus());
+        }
+        while(match(TokenCode::Comma));
     }
-    while(match(TokenCode::Comma));
 
     // Expected closing bracket
     if (!match(TokenCode::BracketC))

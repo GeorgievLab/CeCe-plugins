@@ -119,7 +119,7 @@ void Module::updateSignal(SignalId id)
         clearBack(id);
 
         // Foreach grid
-        for (auto&& c : range(getGridSize()))
+        for (auto&& c : range(getGridSize() - 2 * OFFSET))
         {
             // In obstacle there is no (or shouldn't be) signal
             if (isObstacle(c))

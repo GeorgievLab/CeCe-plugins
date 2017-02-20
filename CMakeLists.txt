@@ -28,7 +28,7 @@ cmake_minimum_required(VERSION 3.1)
 # ######################################################################### #
 
 project(cece-plugins
-    VERSION 0.6.2
+    VERSION 0.6.3
     LANGUAGES CXX
 )
 

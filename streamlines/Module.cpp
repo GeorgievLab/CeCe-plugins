@@ -100,9 +100,14 @@ void Module::init(AtomicBool& flag)
     setFluidDynamics(createFluidDynamics());
     setWallDynamics(createWallDynamics());
 
+    Log::info("[streamlines] Boundaries: ", m_boundaries.getCount());
+
     // Initialize boundary positions
-    for (int i = 0; i < m_boundaries.getCount(); ++i)
-        m_boundaries[i].setDynamics(createBorderDynamics(m_boundaries[i].getPosition()));
+    for (auto& boundary : m_boundaries)
+    {
+        Log::info("[streamlines] Boundary: ", boundary.getName());
+        boundary.setDynamics(createBorderDynamics(boundary.getPosition()));
+    }
 
     // Initialize boundaries
     m_boundaries.init(m_lattice, getFluidDynamics());
@@ -498,8 +503,7 @@ UniquePtr<Dynamics> Module::createBorderDynamics(Boundary::Position pos) const
         return makeUnique<ZouHeDynamics>(omega, ZouHeDynamics::Position::Right);
 
     default:
-        Assert(false && "No way!");
-        break;
+        throw InvalidArgumentException("Unknown boundary type");
     }
 
     return nullptr;

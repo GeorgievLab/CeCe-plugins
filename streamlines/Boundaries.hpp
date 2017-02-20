@@ -194,6 +194,72 @@ public:
     bool isBoundaryDynamics(ViewPtr<Dynamics> dynamics, Boundary::Type type) const noexcept;
 
 
+    /**
+     * @brief      Returns begin iterator.
+     *
+     * @return     Begin iterator.
+     */
+    DynamicArray<Boundary>::iterator begin() noexcept
+    {
+        return m_boundaries.begin();
+    }
+
+
+    /**
+     * @brief      Returns begin iterator.
+     *
+     * @return     Begin iterator.
+     */
+    DynamicArray<Boundary>::const_iterator begin() const noexcept
+    {
+        return m_boundaries.begin();
+    }
+
+
+    /**
+     * @brief      Returns begin iterator.
+     *
+     * @return     Begin iterator.
+     */
+    DynamicArray<Boundary>::const_iterator cbegin() const noexcept
+    {
+        return m_boundaries.cbegin();
+    }
+
+
+    /**
+     * @brief      Returns end iterator.
+     *
+     * @return     End iterator.
+     */
+    DynamicArray<Boundary>::iterator end() noexcept
+    {
+        return m_boundaries.end();
+    }
+
+
+    /**
+     * @brief      Returns end iterator.
+     *
+     * @return     End iterator.
+     */
+    DynamicArray<Boundary>::const_iterator end() const noexcept
+    {
+        return m_boundaries.end();
+    }
+
+
+    /**
+     * @brief      Returns end iterator.
+     *
+     * @return     End iterator.
+     */
+    DynamicArray<Boundary>::const_iterator cend() const noexcept
+    {
+        return m_boundaries.cend();
+    }
+
+
 // Public Operations
 public:
 

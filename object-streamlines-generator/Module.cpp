@@ -34,6 +34,7 @@
 // CeCe
 #include "cece/core/Log.hpp"
 #include "cece/core/Assert.hpp"
+#include "cece/core/Exception.hpp"
 #include "cece/core/StringStream.hpp"
 #include "cece/core/TimeMeasurement.hpp"
 #include "cece/core/UnitIo.hpp"
@@ -167,6 +168,12 @@ void Module::init()
             Log::warning("[object-streamlines-generator] Boundary '", desc.boundary, "' have zero flow rate");
             continue;
         }
+
+        if (boundary->getBlocks().empty())
+        {
+            Log::warning("[object-streamlines-generator] Boundary '" + boundary->getName() + "' with no blocks");
+            continue;
+        }
     }
 }
 
@@ -184,6 +191,7 @@ void Module::update()
     const auto worldSizeH = worldSize * 0.5;
 
     // Get boundaries
+    CECE_ASSERT(m_module);
     const auto& boundaries = m_module->getBoundaries();
     const auto& converter = m_module->getConverter();
 
@@ -220,6 +228,9 @@ void Module::update()
 
         // Get inlet blocks
         const auto& blocks = boundary->getBlocks();
+
+        if (blocks.empty())
+            continue;
 
         // Distrbution for block selection
         std::uniform_int_distribution<> blockDis(0, blocks.size() - 1);
@@ -266,6 +277,10 @@ void Module::update()
                 xMin = xMax = -(worldSizeH.getX() - units::Length(1));
                 yMin = converter.convertLength(block.first()) + fix - worldSizeH.getY();
                 yMax = converter.convertLength(block.last()) - fix - worldSizeH.getY();
+                break;
+
+            default:
+                throw InvalidArgumentException("Unknown boundary position");
             }
 
             // Uniform distribution
@@ -274,7 +289,7 @@ void Module::update()
 
             // Create object
             auto object = simulation.createObject(desc.className);
-            Assert(object);
+            CECE_ASSERT(object);
 
             // Generate position vector
             const units::PositionVector pos{

@@ -29,6 +29,7 @@
 // C++
 #include <algorithm>
 #include <limits>
+#include <cmath>
 
 // CeCe
 #include "cece/core/Assert.hpp"
@@ -57,6 +58,7 @@
 #include "BounceBackDynamics.hpp"
 #include "BgkDynamics.hpp"
 #include "ZouHeDynamics.hpp"
+#include "MovingDynamics.hpp"
 
 /* ************************************************************************ */
 
@@ -71,6 +73,39 @@ namespace {
 /* ************************************************************************ */
 
 constexpr StaticArray<char, 5> FILE_GUARD{{'C', 'E', 'S', 'L', '\0'}};
+
+/* ************************************************************************ */
+
+/**
+ * @brief      Calculate normal vector.
+ *
+ * @param[in]  coord   The coordinate
+ * @param[in]  center  The center
+ * @param[in]  shape   The shape
+ *
+ * @return     The normal.
+ */
+Vector<RealType> calcNormal(const Coordinate& coord, const Coordinate& center, const Shape& shape, const units::PositionVector& step)
+{
+    switch (shape.getType())
+    {
+    case ShapeType::Circle:
+    {
+        const auto offset = (Vector<int>(coord) - Vector<int>(center));
+        const auto radius = (shape.getCircle().radius / step);
+
+        const auto off = offset / radius;
+
+        CECE_ASSERT(off.getX() >= -1.0 && off.getX() <= 1.0);
+        CECE_ASSERT(off.getY() >= -1.0 && off.getY() <= 1.0);
+
+        return off;
+    }
+
+    default:
+        return Zero;
+    }
+}
 
 /* ************************************************************************ */
 
@@ -93,6 +128,9 @@ Module::~Module() = default;
 
 void Module::init(AtomicBool& flag)
 {
+    // Prepare pool for moving obstacle object
+    MovingDynamics::poolPrepare(m_lattice.getSize().getWidth() * m_lattice.getSize().getHeight());
+
     // Print simulation info
     printInfo();
 
@@ -519,6 +557,9 @@ void Module::updateObstacleMap()
     const units::PositionVector start = getSimulation().getWorldSize() * -0.5f;
     const auto step = getSimulation().getWorldSize() / m_lattice.getSize();
 
+    // Clear pool
+    MovingDynamics::poolClear();
+
     // Foreach all cells
     for (auto& obj : getSimulation().getObjects())
     {
@@ -536,7 +577,7 @@ void Module::updateObstacleMap()
             continue;
 
         // Get grid position
-        const auto coord = Coordinate(pos / step);
+        const auto center = Coordinate(pos / step);
 
         // Calculate object velocity in LB
         const auto velocity = m_converter.convertVelocity(obj->getVelocity());
@@ -548,13 +589,25 @@ void Module::updateObstacleMap()
         // Map shapes to grid
         for (const auto& shape : obj->getShapes())
         {
+            auto tmp = shape;
+
+            if (tmp.getType() == ShapeType::Circle)
+                tmp.getCircle().radius *= 0.75;
+
             mapShapeToGrid(
-                [this, &velocity] (Coordinate&& coord) {
+                [&, this] (Coordinate&& coord) {
                     Assert(m_lattice.inRange(coord));
-                    m_lattice[coord].setDynamics(getWallDynamics());
+                    if (isDynamic)
+                    {
+                        m_lattice[coord].setDynamics(MovingDynamics::poolCreate(velocity, calcNormal(coord, center, tmp, step)));
+                    }
+                    else
+                    {
+                        m_lattice[coord].setDynamics(getWallDynamics());
+                    }
                 },
                 [] (Coordinate&& coord) {},
-                shape, step, coord, obj->getRotation(), m_lattice.getSize()
+                tmp, step, center, obj->getRotation(), m_lattice.getSize()
             );
         }
     }

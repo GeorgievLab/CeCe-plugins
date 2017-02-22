@@ -64,6 +64,8 @@ build_plugin(streamlines
         Converter.cpp
         Boundaries.hpp
         Boundaries.cpp
+        MovingDynamics.hpp
+        MovingDynamics.cpp
 )
 
 # ######################################################################### #

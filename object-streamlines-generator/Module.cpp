@@ -256,25 +256,25 @@ void Module::update()
             switch (position)
             {
             case streamlines::Boundary::Position::Top:
-                yMin = yMax = worldSizeH.getY() - units::Length(1);
+                yMin = yMax = worldSizeH.getY() - desc.offset;
                 xMin = converter.convertLength(block.first()) + fix - worldSizeH.getX();
                 xMax = converter.convertLength(block.last()) - fix - worldSizeH.getX();
                 break;
 
             case streamlines::Boundary::Position::Bottom:
-                yMin = yMax = -(worldSizeH.getY() - units::Length(1));
+                yMin = yMax = -(worldSizeH.getY() - desc.offset);
                 xMin = converter.convertLength(block.first()) + fix - worldSizeH.getX();
                 xMax = converter.convertLength(block.last()) - fix - worldSizeH.getX();
                 break;
 
             case streamlines::Boundary::Position::Right:
-                xMin = xMax = worldSizeH.getX() - units::Length(1);
+                xMin = xMax = worldSizeH.getX() - desc.offset;
                 yMin = converter.convertLength(block.first()) + fix - worldSizeH.getY();
                 yMax = converter.convertLength(block.last()) - fix - worldSizeH.getY();
                 break;
 
             case streamlines::Boundary::Position::Left:
-                xMin = xMax = -(worldSizeH.getX() - units::Length(1));
+                xMin = xMax = -(worldSizeH.getX() - desc.offset);
                 yMin = converter.convertLength(block.first()) + fix - worldSizeH.getY();
                 yMax = converter.convertLength(block.last()) - fix - worldSizeH.getY();
                 break;
@@ -316,6 +316,7 @@ void Module::loadConfig(const config::Configuration& config)
         ObjectDesc desc;
         desc.className = cfg.get("class");
         desc.boundary = cfg.get("boundary");
+        desc.offset = cfg.get("offset", desc.offset);
         desc.concentration = cfg.get<units::NumberConcentration>("concentration");
         desc.active = parseActive(cfg.get("active", String{}));
         desc.config = cfg.toMemory();

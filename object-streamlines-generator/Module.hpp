@@ -66,6 +66,9 @@ struct ObjectDesc
     /// List of iteration ranges when the generator is active.
     DynamicArray<IterationRange> active;
 
+    /// Source offset
+    units::Length offset = units::Length(1);
+
     /// Object configuration
     config::Configuration config;
 };

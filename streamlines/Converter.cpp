@@ -42,6 +42,102 @@ namespace streamlines {
 
 /* ************************************************************************ */
 
+units::Length Converter::convertLength(RealType length) const noexcept
+{
+    const auto charLength = m_charLength / getNumberNodes();
+    return charLength * length;
+}
+
+/* ************************************************************************ */
+
+RealType Converter::convertLength(units::Length length) const noexcept
+{
+    const auto charLength = m_charLength / getNumberNodes();
+    return length / charLength;
+}
+
+/* ************************************************************************ */
+
+units::Velocity Converter::convertVelocity(RealType vel) const noexcept
+{
+    const auto charTime = m_charTime / getNumberSteps();
+    const auto charLength = m_charLength / getNumberNodes();
+    return charLength / charTime * vel;
+}
+
+/* ************************************************************************ */
+
+units::VelocityVector Converter::convertVelocity(Vector<RealType> vel) const noexcept
+{
+    const auto charTime = m_charTime / getNumberSteps();
+    const auto charLength = m_charLength / getNumberNodes();
+    return charLength / charTime * vel;
+}
+
+/* ************************************************************************ */
+
+RealType Converter::convertVelocity(units::Velocity vel) const noexcept
+{
+    const auto charTime = m_charTime / getNumberSteps();
+    const auto charLength = m_charLength / getNumberNodes();
+    return charTime / charLength * vel;
+}
+
+/* ************************************************************************ */
+
+Vector<RealType> Converter::convertVelocity(units::VelocityVector vel) const noexcept
+{
+    const auto charTime = m_charTime / getNumberSteps();
+    const auto charLength = m_charLength / getNumberNodes();
+    return charTime / charLength * vel;
+}
+
+/* ************************************************************************ */
+
+units::Force Converter::convertForce(RealType force) const noexcept
+{
+    const auto charTime = m_charTime / getNumberSteps();
+    const auto charLength = m_charLength / getNumberNodes();
+    const auto charDensity = m_charDensity;
+    const auto charMass = charDensity * (charLength * charLength * charLength);
+    return charMass * charLength / (charTime * charTime) * force;
+}
+
+/* ************************************************************************ */
+
+units::ForceVector Converter::convertForce(Vector<RealType> force) const noexcept
+{
+    const auto charTime = m_charTime / getNumberSteps();
+    const auto charLength = m_charLength / getNumberNodes();
+    const auto charDensity = m_charDensity;
+    const auto charMass = charDensity * (charLength * charLength * charLength);
+    return charMass * charLength / (charTime * charTime) * force;
+}
+
+/* ************************************************************************ */
+
+RealType Converter::convertForce(units::Force force) const noexcept
+{
+    const auto charTime = m_charTime / getNumberSteps();
+    const auto charLength = m_charLength / getNumberNodes();
+    const auto charDensity = m_charDensity;
+    const auto charMass = charDensity * (charLength * charLength * charLength);
+    return (charTime * charTime) / (charMass * charLength) * force;
+}
+
+/* ************************************************************************ */
+
+Vector<RealType> Converter::convertForce(units::ForceVector force) const noexcept
+{
+    const auto charTime = m_charTime / getNumberSteps();
+    const auto charLength = m_charLength / getNumberNodes();
+    const auto charDensity = m_charDensity;
+    const auto charMass = charDensity * (charLength * charLength * charLength);
+    return (charTime * charTime) / (charMass * charLength) * force;
+}
+
+/* ************************************************************************ */
+
 RealType Converter::calculateViscosity() const noexcept
 {
     const auto charTime = getCharTime() / getNumberSteps();

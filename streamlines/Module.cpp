@@ -748,11 +748,20 @@ void Module::applyToObject(object::Object& object)
                 continue;
 
             // Shape force
-            const units::ForceVector forceShape = m_converter.convertForce(forceLB);
+            const auto forceShape = m_converter.convertForce(forceLB);
 
             // Add force from shape
-            force += 1e-17 * forceShape;
+            force += forceShape;
         }
+
+        // Force coefficient
+        // Converter uses calculated number of steps but the simulation works with inner iterations.
+        const auto coeff =
+            (static_cast<RealType>(getInnerIterations()) * static_cast<RealType>(getInnerIterations())) /
+            (static_cast<RealType>(m_converter.getNumberSteps()) * static_cast<RealType>(m_converter.getNumberSteps()))
+        ;
+
+        force *= coeff;
 
         //Log::info("Force: (", force.getX(), ", ", force.getY(), ")");
 

@@ -217,11 +217,7 @@ public:
      *
      * @return
      */
-    units::Length convertLength(RealType length) const noexcept
-    {
-        const auto charLength = m_charLength / getNumberNodes();
-        return charLength * length;
-    }
+    units::Length convertLength(RealType length) const noexcept;
 
 
     /**
@@ -231,11 +227,7 @@ public:
      *
      * @return
      */
-    RealType convertLength(units::Length length) const noexcept
-    {
-        const auto charLength = m_charLength / getNumberNodes();
-        return length / charLength;
-    }
+    RealType convertLength(units::Length length) const noexcept;
 
 
     /**
@@ -245,12 +237,7 @@ public:
      *
      * @return
      */
-    units::Velocity convertVelocity(RealType vel) const noexcept
-    {
-        const auto charTime = m_charTime / getNumberSteps();
-        const auto charLength = m_charLength / getNumberNodes();
-        return charLength / charTime * vel;
-    }
+    units::Velocity convertVelocity(RealType vel) const noexcept;
 
 
     /**
@@ -260,12 +247,7 @@ public:
      *
      * @return
      */
-    units::VelocityVector convertVelocity(Vector<RealType> vel) const noexcept
-    {
-        const auto charTime = m_charTime / getNumberSteps();
-        const auto charLength = m_charLength / getNumberNodes();
-        return charLength / charTime * vel;
-    }
+    units::VelocityVector convertVelocity(Vector<RealType> vel) const noexcept;
 
 
     /**
@@ -275,12 +257,7 @@ public:
      *
      * @return
      */
-    RealType convertVelocity(units::Velocity vel) const noexcept
-    {
-        const auto charTime = m_charTime / getNumberSteps();
-        const auto charLength = m_charLength / getNumberNodes();
-        return charTime / charLength * vel;
-    }
+    RealType convertVelocity(units::Velocity vel) const noexcept;
 
 
     /**
@@ -290,12 +267,7 @@ public:
      *
      * @return
      */
-    Vector<RealType> convertVelocity(units::VelocityVector vel) const noexcept
-    {
-        const auto charTime = m_charTime / getNumberSteps();
-        const auto charLength = m_charLength / getNumberNodes();
-        return charTime / charLength * vel;
-    }
+    Vector<RealType> convertVelocity(units::VelocityVector vel) const noexcept;
 
 
     /**
@@ -305,13 +277,7 @@ public:
      *
      * @return
      */
-    units::Force convertForce(RealType force) const noexcept
-    {
-        const auto charTime = m_charTime / getNumberSteps();
-        const auto charLength = m_charLength / getNumberNodes();
-        const auto charMass = units::Mass(1);
-        return charMass * charLength / (charTime * charTime) * force;
-    }
+    units::Force convertForce(RealType force) const noexcept;
 
 
     /**
@@ -321,13 +287,7 @@ public:
      *
      * @return
      */
-    units::ForceVector convertForce(Vector<RealType> force) const noexcept
-    {
-        const auto charTime = m_charTime / getNumberSteps();
-        const auto charLength = m_charLength / getNumberNodes();
-        const auto charMass = units::Mass(1);
-        return charMass * charLength / (charTime * charTime) * force;
-    }
+    units::ForceVector convertForce(Vector<RealType> force) const noexcept;
 
 
     /**
@@ -337,13 +297,7 @@ public:
      *
      * @return
      */
-    RealType convertForce(units::Force force) const noexcept
-    {
-        const auto charTime = m_charTime / getNumberSteps();
-        const auto charLength = m_charLength / getNumberNodes();
-        const auto charMass = units::Mass(1);
-        return (charTime * charTime) / (charMass * charLength) * force;
-    }
+    RealType convertForce(units::Force force) const noexcept;
 
 
     /**
@@ -353,13 +307,7 @@ public:
      *
      * @return
      */
-    Vector<RealType> convertForce(units::ForceVector force) const noexcept
-    {
-        const auto charTime = m_charTime / getNumberSteps();
-        const auto charLength = m_charLength / getNumberNodes();
-        const auto charMass = units::Mass(1);
-        return (charTime * charTime) / (charMass * charLength) * force;
-    }
+    Vector<RealType> convertForce(units::ForceVector force) const noexcept;
 
 
     /**
@@ -469,6 +417,9 @@ private:
 
     /// Characteristic time.
     units::Time m_charTime = units::s(1);
+
+    /// Characteristic density.
+    units::Density m_charDensity = units::g(1) / units::cm3(1);
 
     /// Number of LB nodes for units conversions.
     unsigned int m_numberNodes = 1;

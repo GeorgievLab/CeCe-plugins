@@ -614,6 +614,9 @@ void Module::updateObstacleMap()
 
             for (const auto c2 : cs)
             {
+                if (!m_lattice.inRange(c2))
+                    continue;
+
                 if (m_lattice[c2].getDynamics() != getFluidDynamics())
                     continue;
 

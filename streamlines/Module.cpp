@@ -76,39 +76,6 @@ constexpr StaticArray<char, 5> FILE_GUARD{{'C', 'E', 'S', 'L', '\0'}};
 
 /* ************************************************************************ */
 
-/**
- * @brief      Calculate normal vector.
- *
- * @param[in]  coord   The coordinate
- * @param[in]  center  The center
- * @param[in]  shape   The shape
- *
- * @return     The normal.
- */
-Vector<RealType> calcNormal(const Coordinate& coord, const Coordinate& center, const Shape& shape, const units::PositionVector& step)
-{
-    switch (shape.getType())
-    {
-    case ShapeType::Circle:
-    {
-        const auto offset = (Vector<int>(coord) - Vector<int>(center));
-        const auto radius = (shape.getCircle().radius / step);
-
-        const auto off = offset / radius;
-
-        CECE_ASSERT(off.getX() >= -1.0 && off.getX() <= 1.0);
-        CECE_ASSERT(off.getY() >= -1.0 && off.getY() <= 1.0);
-
-        return off;
-    }
-
-    default:
-        return Zero;
-    }
-}
-
-/* ************************************************************************ */
-
 }
 
 /* ************************************************************************ */
@@ -293,8 +260,13 @@ void Module::loadConfig(const config::Configuration& config)
         m_lattice.setSize(size + Lattice::Size(1, 1));
     }
 
+    // Allocate moving obstacle map
+    m_movingObstacleMap.resize(m_lattice.getSize());
+
     // Enable dynamic object obstacles
     setDynamicObjectsObstacles(config.get("dynamic-object-obstacles", isDynamicObjectsObstacles()));
+
+    m_circleObstacleScale = config.get("dynamic-object-circle-scale", m_circleObstacleScale);
 
 #ifdef CECE_RENDER
     m_visualizationLayerDynamicsType = config.get("layer-dynamics", m_visualizationLayerDynamicsType);
@@ -560,6 +532,9 @@ void Module::updateObstacleMap()
     // Clear pool
     MovingDynamics::poolClear();
 
+    Grid<char> movingObstacleMap;
+    movingObstacleMap.resize(m_movingObstacleMap.getSize());
+
     // Foreach all cells
     for (auto& obj : getSimulation().getObjects())
     {
@@ -589,17 +564,19 @@ void Module::updateObstacleMap()
         // Map shapes to grid
         for (const auto& shape : obj->getShapes())
         {
-            auto tmp = shape;
+            auto shp = shape;
 
-            if (tmp.getType() == ShapeType::Circle)
-                tmp.getCircle().radius *= 0.75;
+            if (shp.getType() == ShapeType::Circle)
+                shp.getCircle().radius *= m_circleObstacleScale;
 
             mapShapeToGrid(
                 [&, this] (Coordinate&& coord) {
                     Assert(m_lattice.inRange(coord));
-                    if (isDynamic)
+                    if (isDynamic && this->isDynamic())
                     {
-                        m_lattice[coord].setDynamics(MovingDynamics::poolCreate(velocity, calcNormal(coord, center, tmp, step)));
+                        m_lattice[coord].setDynamics(MovingDynamics::poolCreate(velocity));
+                        movingObstacleMap[coord] = true;
+                        m_movingObstacleMap[coord] = false;
                     }
                     else
                     {
@@ -607,8 +584,52 @@ void Module::updateObstacleMap()
                     }
                 },
                 [] (Coordinate&& coord) {},
-                tmp, step, center, obj->getRotation(), m_lattice.getSize()
+                shp, step, center, obj->getRotation(), m_lattice.getSize()
             );
+        }
+    }
+
+    // Only for dynamic obstacles
+    if (isDynamicObjectsObstacles())
+    {
+        // Swap maps
+        std::swap(m_movingObstacleMap, movingObstacleMap);
+
+        // Nodes with 'true' in movingObstacleMap have changed from obstacle to fluid
+        for (const auto& c : range(m_lattice.getSize()))
+        {
+            if (!movingObstacleMap[c])
+                continue;
+
+            const Coordinate cs[4] = {
+                Coordinate(c.getX() + 1, c.getY() + 0),
+                Coordinate(c.getX() - 1, c.getY() + 0),
+                Coordinate(c.getX() + 0, c.getY() + 1),
+                Coordinate(c.getX() + 0, c.getY() - 1)
+            };
+
+            int count = 0;
+            RealType density = 0;
+            Vector<RealType> velocity = Zero;
+
+            for (const auto c2 : cs)
+            {
+                if (m_lattice[c2].getDynamics() != getFluidDynamics())
+                    continue;
+
+                ++count;
+                density += m_lattice[c2].computeDensity();
+                velocity += m_lattice[c2].computeVelocity();
+            }
+
+            if (count)
+            {
+                m_lattice[c].initEquilibrium(velocity / count, density / count);
+            }
+            else
+            {
+                m_lattice[c].initEquilibrium();
+            }
         }
     }
 
@@ -651,112 +672,218 @@ void Module::applyToObject(object::Object& object)
     // Coefficient used in force calculation
     const auto forceCoefficient = 6 * constants::PI * m_converter.getKinematicViscosity() * object.getDensity();
 
-    auto force = units::ForceVector{Zero};
-    auto velocityObjEnv = units::VelocityVector{Zero};
-
-    // Map shapes border to grid
-    for (const auto& shape : object.getShapes())
+    if (isDynamicObjectsObstacles() && isDynamic())
     {
-        // Only circle shapes are supported
-        if (shape.getType() != ShapeType::Circle)
-            continue;
+        auto force = units::ForceVector{Zero};
 
-        // Shape alias
-        const auto& circle = shape.getCircle();
-
-        // Transform from [-size / 2, size / 2] to [0, size] space
-        const auto pos = object.getWorldPosition(circle.center) - start;
-
-        // Check if position is in range
-        if (!pos.inRange(Zero, getSimulation().getWorldSize()))
-            continue;
-
-        // Get coordinate to lattice
-        const auto coord = Coordinate(pos / step);
-
-        Vector<RealType> velocityLB = Zero;
-        unsigned long count = 0;
-
-        // Store velocity for each coordinate
-        mapShapeBorderToGrid(
-            [this, &velocityLB, &count] (Coordinate&& coord) {
-                velocityLB += m_lattice[coord].computeVelocity();
-                ++count;
-            },
-            [] (Coordinate&& coord) { },
-            shape, step, coord, m_lattice.getSize(), {}, 1
-        );
-
-        if (count == 0)
-            continue;
-
-        // Average
-        velocityLB /= count;
-        const units::VelocityVector velocityEnv = m_converter.convertVelocity(velocityLB);
-        //const VelocityVector velocityEnv{m_inletVelocities[0], Zero};
-
-        if (velocityEnv.getLengthSquared() > maxSpeedSq)
+        // Map shapes border to grid
+        for (const auto& shape : object.getShapes())
         {
-            OutStringStream oss;
-            oss <<
-                "[streamlines] Physical engine can't handle environment "
-                "velocity (" << velocityEnv.getLength() << " um/s < " << maxSpeed << " um/s). "
-                "Decrease inlet velocities or change topology."
-            ;
+            // Only circle shapes are supported
+            if (shape.getType() != ShapeType::Circle)
+                continue;
 
-            Log::warning(oss.str());
-            //throw RuntimeException(oss.str());
+            // Shape alias
+            const auto& circle = shape.getCircle();
+
+            // Transform from [-size / 2, size / 2] to [0, size] space
+            const auto pos = object.getWorldPosition(circle.center) - start;
+
+            // Check if position is in range
+            if (!pos.inRange(Zero, getSimulation().getWorldSize()))
+                continue;
+
+            // Get coordinate to lattice
+            const auto c = Coordinate(pos / step);
+
+            Vector<RealType> forceLB = Zero;
+
+            // Force function
+            auto forceEval = [this, &forceLB] (Coordinate&& coord) {
+
+                // Get node
+                const auto& node = m_lattice[coord];
+
+                Vector<RealType> force = Zero;
+
+                // Foreach all directions
+                for (Descriptor::DirectionType iPop = 1; iPop < Descriptor::SIZE; ++iPop)
+                {
+                    const auto iOpp = Descriptor::DIRECTION_OPPOSITES[iPop];
+                    const auto ei = Descriptor::DIRECTION_VELOCITIES[iOpp];
+
+                    // Neighbour coordinate & node
+                    const auto nc = coord + Coordinate(ei);
+
+                    // Skip
+                    if (!m_lattice.inRange(nc))
+                        continue;
+
+                    const auto& nn = m_lattice[nc];
+
+                    // Not fluid dynamics
+                    if (nn.getDynamics() != getFluidDynamics())
+                        continue;
+
+                    force += -ei * (nn[iOpp] + nn[iPop]);
+                }
+
+                forceLB += force;
+            };
+
+            auto shp = shape;
+
+            if (shp.getType() == ShapeType::Circle)
+                shp.getCircle().radius *= m_circleObstacleScale;
+
+            // Store force for each coordinate
+            mapShapeToGrid(
+                forceEval,
+                [] (Coordinate&& coord) { },
+                shp, step, c, object.getRotation(), m_lattice.getSize()
+            );
+
+            // No force
+            if (forceLB == Zero)
+                continue;
+
+            // Shape force
+            const units::ForceVector forceShape = m_converter.convertForce(forceLB);
+
+            // Add force from shape
+            force += 1e-17 * forceShape;
         }
 
-        velocityObjEnv += velocityEnv;
+        //Log::info("Force: (", force.getX(), ", ", force.getY(), ")");
 
-        // Shape radius
-        const auto radius = circle.radius;
-        // Distance from mass center
-        const auto offset = circle.center - center;
+        // Calculate linear impulse from shapes
+        auto impulse = force * getSimulation().getTimeStep();
 
-        // Angular velocity
-        const auto omega = object.getAngularVelocity();
+        // Maximum impulse
+        const auto impulseMax = units::ImpulseVector(
+            units::Impulse(1e-10),
+            units::Impulse(1e-10)
+        );
 
-        // Calculate shape global velocity
-        const auto velocity = object.getVelocity() + cross(omega, offset);
+        // Impulse is to big
+        if (impulse.getLengthSquared() > impulseMax.getLengthSquared())
+        {
+            const RealType ratio = impulseMax.getLength() / impulse.getLength();
+            impulse *= ratio;
+        }
 
-        // Difference between environment velocity and shape velocity
-        const auto dv = velocityEnv - velocity;
+        // Apply impulse
+        object.applyLinearImpulse(impulse);
+    }
+    else
+    {
+        auto force = units::ForceVector{Zero};
+        auto velocityObjEnv = units::VelocityVector{Zero};
+
+        // Map shapes border to grid
+        for (const auto& shape : object.getShapes())
+        {
+            // Only circle shapes are supported
+            if (shape.getType() != ShapeType::Circle)
+                continue;
+
+            // Shape alias
+            const auto& circle = shape.getCircle();
+
+            // Transform from [-size / 2, size / 2] to [0, size] space
+            const auto pos = object.getWorldPosition(circle.center) - start;
+
+            // Check if position is in range
+            if (!pos.inRange(Zero, getSimulation().getWorldSize()))
+                continue;
+
+            // Get coordinate to lattice
+            const auto coord = Coordinate(pos / step);
+
+            Vector<RealType> velocityLB = Zero;
+            unsigned long count = 0;
+
+            // Store velocity for each coordinate
+            mapShapeBorderToGrid(
+                [this, &velocityLB, &count] (Coordinate&& coord) {
+                    velocityLB += m_lattice[coord].computeVelocity();
+                    ++count;
+                },
+                [] (Coordinate&& coord) { },
+                shape, step, coord, m_lattice.getSize(), {}, 1
+            );
+
+            if (count == 0)
+                continue;
+
+            // Average
+            velocityLB /= count;
+            const units::VelocityVector velocityEnv = m_converter.convertVelocity(velocityLB);
+            //const VelocityVector velocityEnv{m_inletVelocities[0], Zero};
+
+            if (velocityEnv.getLengthSquared() > maxSpeedSq)
+            {
+                OutStringStream oss;
+                oss <<
+                    "[streamlines] Physical engine can't handle environment "
+                    "velocity (" << velocityEnv.getLength() << " um/s < " << maxSpeed << " um/s). "
+                    "Decrease inlet velocities or change topology."
+                ;
+
+                Log::warning(oss.str());
+                //throw RuntimeException(oss.str());
+            }
+
+            velocityObjEnv += velocityEnv;
+
+            // Shape radius
+            const auto radius = circle.radius;
+            // Distance from mass center
+            const auto offset = circle.center - center;
+
+            // Angular velocity
+            const auto omega = object.getAngularVelocity();
+
+            // Calculate shape global velocity
+            const auto velocity = object.getVelocity() + cross(omega, offset);
+
+            // Difference between environment velocity and shape velocity
+            const auto dv = velocityEnv - velocity;
+
+            // Same velocity
+            if (dv == Zero)
+                continue;
+
+            // Add force from shape
+            force += forceCoefficient * radius * dv;
+        }
+
+        Assert(object.getShapes().size() > 0);
+        velocityObjEnv /= object.getShapes().size();
+
+        // Difference between velocities
+        const auto dv = velocityObjEnv - object.getVelocity();
 
         // Same velocity
         if (dv == Zero)
-            continue;
+            return;
 
-        // Add force from shape
-        force += forceCoefficient * radius * dv;
+        // Maximum impulse
+        const auto impulseMax = object.getMass() * dv;
+
+        // Calculate linear impulse from shapes
+        auto impulse = force * getSimulation().getTimeStep();
+
+        // Impulse is to big
+        if (impulse.getLengthSquared() > impulseMax.getLengthSquared())
+        {
+            const RealType ratio = impulseMax.getLength() / impulse.getLength();
+            impulse *= ratio;
+        }
+
+        // Apply impulse
+        object.applyLinearImpulse(impulse);
     }
-
-    Assert(object.getShapes().size() > 0);
-    velocityObjEnv /= object.getShapes().size();
-
-    // Difference between velocities
-    const auto dv = velocityObjEnv - object.getVelocity();
-
-    // Same velocity
-    if (dv == Zero)
-        return;
-
-    // Maximum impulse
-    const auto impulseMax = object.getMass() * dv;
-
-    // Calculate linear impulse from shapes
-    auto impulse = force * getSimulation().getTimeStep();
-
-    // Impulse is to big
-    if (impulse.getLengthSquared() > impulseMax.getLengthSquared())
-    {
-        const RealType ratio = impulseMax.getLength() / impulse.getLength();
-        impulse *= ratio;
-    }
-
-    // Apply impulse
-    object.applyLinearImpulse(impulse);
 }
 
 /* ************************************************************************ */

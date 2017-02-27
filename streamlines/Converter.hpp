@@ -299,6 +299,70 @@ public:
 
 
     /**
+     * @brief Convert force from LB to physical.
+     *
+     * @param force
+     *
+     * @return
+     */
+    units::Force convertForce(RealType force) const noexcept
+    {
+        const auto charTime = m_charTime / getNumberSteps();
+        const auto charLength = m_charLength / getNumberNodes();
+        const auto charMass = units::Mass(1);
+        return charMass * charLength / (charTime * charTime) * force;
+    }
+
+
+    /**
+     * @brief Convert force from LB to physical.
+     *
+     * @param force
+     *
+     * @return
+     */
+    units::ForceVector convertForce(Vector<RealType> force) const noexcept
+    {
+        const auto charTime = m_charTime / getNumberSteps();
+        const auto charLength = m_charLength / getNumberNodes();
+        const auto charMass = units::Mass(1);
+        return charMass * charLength / (charTime * charTime) * force;
+    }
+
+
+    /**
+     * @brief Convert force from physical to LB.
+     *
+     * @param force
+     *
+     * @return
+     */
+    RealType convertForce(units::Force force) const noexcept
+    {
+        const auto charTime = m_charTime / getNumberSteps();
+        const auto charLength = m_charLength / getNumberNodes();
+        const auto charMass = units::Mass(1);
+        return (charTime * charTime) / (charMass * charLength) * force;
+    }
+
+
+    /**
+     * @brief Convert force from physical to LB.
+     *
+     * @param force
+     *
+     * @return
+     */
+    Vector<RealType> convertForce(units::ForceVector force) const noexcept
+    {
+        const auto charTime = m_charTime / getNumberSteps();
+        const auto charLength = m_charLength / getNumberNodes();
+        const auto charMass = units::Mass(1);
+        return (charTime * charTime) / (charMass * charLength) * force;
+    }
+
+
+    /**
      * @brief Calculate viscosity from relaxation time.
      *
      * @return

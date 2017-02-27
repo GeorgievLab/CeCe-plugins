@@ -484,6 +484,9 @@ private:
     /// Use dynamic objects as obstacles
     bool m_dynamicObjectsObstacles = false;
 
+    /// Scaling for circle obstacle.
+    RealType m_circleObstacleScale = 1.0;
+
 #ifdef CECE_RENDER
     /// Name of layer for flow dynamics type visualization.
     String m_visualizationLayerDynamicsType;
@@ -512,6 +515,9 @@ private:
 
     /// Used wall dynamics.
     UniquePtr<Dynamics> m_wallDynamics;
+
+    /// Map of moving obstacles (Grid uses std::vector and bool is an issue).
+    Grid<char> m_movingObstacleMap;
 
 };
 

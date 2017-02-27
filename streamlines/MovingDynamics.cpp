@@ -54,28 +54,6 @@ DynamicArray<MovingDynamics> g_pool;
 
 /* ************************************************************************ */
 
-const StaticArray<StaticArray<Descriptor::DirectionType, 3>, 3> VEC_TO_INDEX{{
-    {{3, 4, 5}},
-    {{2, 0, 6}},
-    {{1, 8, 7}}
-}};
-
-/* ************************************************************************ */
-
-const StaticArray<StaticArray<Descriptor::DirectionType, Descriptor::SIZE>, Descriptor::SIZE> NORMAL_MAPPING{{
-    {{0, 1, 2, 3, 4, 5, 6, 7, 8}},
-    {{0, 5, 4, 3, 4, 5, 6, 7, 6}},
-    {{0, 7, 6, 5, 4, 5, 6, 7, 8}},
-    {{0, 1, 8, 7, 6, 5, 6, 7, 8}},
-    {{0, 1, 2, 1, 8, 7, 6, 7, 8}},
-    {{0, 1, 2, 3, 2, 1, 8, 7, 8}},
-    {{0, 1, 2, 3, 4, 3, 2, 1, 8}},
-    {{0, 1, 2, 3, 4, 5, 4, 3, 2}},
-    {{0, 3, 2, 3, 4, 5, 6, 5, 4}},
-}};
-
-/* ************************************************************************ */
-
 }
 
 /* ************************************************************************ */
@@ -148,18 +126,7 @@ MovingDynamics::defineVelocity(DataType& data, VelocityType velocity) const noex
 void
 MovingDynamics::collide(DataType& data) const noexcept
 {
-    const auto n = Vector<int>(
-        std::lround(m_normal.getX()),
-        std::lround(m_normal.getY())
-    );
-
-    // Normal index
-    const auto ni = VEC_TO_INDEX[n.getY() + 1][n.getX() + 1];
-
     DataType temp;
-
-    RealType wp = 1.0;
-    RealType wr = 0;
 
     // Move updated values into opposite directions
     for (Descriptor::DirectionType iPop = 0; iPop < Descriptor::SIZE; ++iPop)
@@ -167,12 +134,8 @@ MovingDynamics::collide(DataType& data) const noexcept
         const auto wi = Descriptor::DIRECTION_WEIGHTS[iPop];
         const auto ui = Descriptor::DIRECTION_VELOCITIES[iPop];
         const auto iop = Descriptor::DIRECTION_OPPOSITES[iPop];
-        const auto ir = NORMAL_MAPPING[ni][iPop];
 
-        temp[iPop] =
-            wp * (data[iop] + 2 * wi * 3 * dot(ui, m_velocity)) +
-            (1.0 - wp) * (data[ir] + wr * 2 * wi * 3 * dot(ui, m_normal * dot(m_normal, m_normal)))
-        ;
+        temp[iPop] = data[iop] + 6 * wi * dot(ui, m_velocity);
 
         // Result value must be positive
         CECE_ASSERT(temp[iPop] > 0);
@@ -191,9 +154,9 @@ void MovingDynamics::poolPrepare(int size) noexcept
 
 /* ************************************************************************ */
 
-ViewPtr<MovingDynamics> MovingDynamics::poolCreate(VelocityType velocity, Vector<RealType> normal) noexcept
+ViewPtr<MovingDynamics> MovingDynamics::poolCreate(VelocityType velocity) noexcept
 {
-    g_pool.emplace_back(velocity, normal);
+    g_pool.emplace_back(velocity);
 
     return &g_pool.back();
 }

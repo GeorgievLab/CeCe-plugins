@@ -55,11 +55,9 @@ public:
      * @brief      Constructor.
      *
      * @param      velocity  The obstacle velocity.
-     * @param[in]  normal    The obstacle normal.
      */
-    explicit MovingDynamics(VelocityType velocity, Vector<RealType> normal)
+    explicit MovingDynamics(VelocityType velocity)
         : m_velocity(velocity)
-        , m_normal(normal)
     {
         // Nothing to do
     }
@@ -161,11 +159,10 @@ public:
      *             pool.
      *
      * @param[in]  velocity  The velocity.
-     * @param[in]  normal    The normal.
      *
      * @return     Pointer to dynamics.
      */
-    static ViewPtr<MovingDynamics> poolCreate(VelocityType velocity, Vector<RealType> normal) noexcept;
+    static ViewPtr<MovingDynamics> poolCreate(VelocityType velocity) noexcept;
 
 
     /**
@@ -179,9 +176,6 @@ private:
 
     /// Obstacle velocity.
     VelocityType m_velocity;
-
-    /// Obstacle normal.
-    Vector<RealType> m_normal;
 
 };
 

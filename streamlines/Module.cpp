@@ -1,5 +1,5 @@
 /* ************************************************************************ */
-/* Georgiev Lab (c) 2015-2016                                               */
+/* Georgiev Lab (c) 2015-2017                                               */
 /* ************************************************************************ */
 /* Department of Cybernetics                                                */
 /* Faculty of Applied Sciences                                              */
@@ -90,6 +90,62 @@ Module::Module(simulator::Simulation& simulation)
 /* ************************************************************************ */
 
 Module::~Module() = default;
+
+/* ************************************************************************ */
+
+Size Module::getLatticeSize() const noexcept
+{
+    return m_lattice.getSize();
+}
+
+/* ************************************************************************ */
+
+bool Module::inLatticeRange(Coordinate coord) const noexcept
+{
+    return m_lattice.inRange(coord);
+}
+
+/* ************************************************************************ */
+
+units::VelocityVector Module::getVelocity(Coordinate coord) const
+{
+    return m_converter.convertVelocity(m_lattice[coord].computeVelocity());
+}
+
+/* ************************************************************************ */
+
+void Module::setVelocity(Coordinate coord, units::VelocityVector velocity)
+{
+    m_lattice[coord].defineVelocity(m_converter.convertVelocity(velocity));
+}
+
+/* ************************************************************************ */
+
+Pressure Module::getPressure(Coordinate coord) const
+{
+    return Pressure(m_lattice[coord].computeDensity());
+}
+
+/* ************************************************************************ */
+
+ViewPtr<Dynamics> Module::getDynamics(Coordinate coord) const
+{
+    return m_lattice[coord].getDynamics();
+}
+
+/* ************************************************************************ */
+
+void Module::setDynamics(Coordinate coord, ViewPtr<Dynamics> dynamics)
+{
+    m_lattice[coord].setDynamics(dynamics);
+}
+
+/* ************************************************************************ */
+
+Descriptor::DataType Module::getDistribution(Coordinate coord) const
+{
+    return m_lattice[coord].getData();
+}
 
 /* ************************************************************************ */
 

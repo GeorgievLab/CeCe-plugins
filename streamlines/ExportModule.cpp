@@ -100,21 +100,20 @@ void ExportModule::update()
     Assert(m_module);
 
     const auto& sim = getSimulation();
-    const auto& lattice = m_module->getLattice();
-    const auto& conv = m_module->getConverter();
 
-    for (auto&& c : range(lattice.getSize()))
+    for (auto&& c : range(m_module->getLatticeSize()))
     {
-        const auto& data = lattice[c];
-
         // Do not save data with no dynamics
-        if (data.getDynamics() == NoDynamics::getInstance())
+        if (m_module->getDynamics(c) == NoDynamics::getInstance())
             continue;
 
-        const auto vel = conv.convertVelocity(data.computeVelocity());
+        const auto vel = m_module->getVelocity(c);
+        const auto p = m_module->getPressure(c);
 
         if (isPopulationsExported())
         {
+            const auto& data = m_module->getDistribution(c);
+
             writeRecord(
                 sim.getIteration(),
                 sim.getTotalTime().value(),
@@ -122,7 +121,7 @@ void ExportModule::update()
                 c.getY(),
                 vel.getX().value(),
                 vel.getY().value(),
-                data.computeDensity(),
+                p.value(),
                 data[0],
                 data[1],
                 data[2],
@@ -143,7 +142,7 @@ void ExportModule::update()
                 c.getY(),
                 vel.getX().value(),
                 vel.getY().value(),
-                data.computeDensity()
+                p.value()
             );
         }
     }

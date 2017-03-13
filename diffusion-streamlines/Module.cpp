@@ -84,13 +84,10 @@ void Module::init()
     if (!m_streamlines)
         throw InvalidArgumentException("Missing streamlines module");
 
-    // Get lattice
-    const auto& lattice = m_streamlines->getLattice();
-
-    if (lattice.getSize() != getGridSize())
+    if (m_streamlines->getLatticeSize() != getGridSize())
     {
         Log::warning("[diffusion-streamlines] Different grid sizes");
-        setGridSize(lattice.getSize());
+        setGridSize(m_streamlines->getLatticeSize());
     }
 }
 
@@ -104,15 +101,13 @@ void Module::updateSignal(SignalId id)
     diffusion::Module::updateSignal(id);
 
     Assert(m_streamlines);
-    const auto& lattice = m_streamlines->getLattice();
-    const auto& conv = m_streamlines->getConverter();
 
     // Precompute values
     const auto step = getSimulation().getWorldSize() / getGridSize();
     const auto dt = getSimulation().getTimeStep() / getInnerIterations();
 
     // Same grid sizes
-    Assert(lattice.getSize() == getGridSize());
+    Assert(m_streamlines->getLatticeSize() == getGridSize());
 
     for (IterationType i = 0; i < getInnerIterations(); ++i)
     {
@@ -133,7 +128,7 @@ void Module::updateSignal(SignalId id)
                 continue;
 
             // Get velocity
-            const auto& velocity = conv.convertVelocity(lattice[c].computeVelocity());
+            const auto& velocity = m_streamlines->getVelocity(c);
 
             // Distance change
             const auto ds = velocity * dt;
@@ -186,15 +181,13 @@ void Module::updateObstacles()
     // Copy data from streamlines
     Assert(m_streamlines);
 
-    const auto& lattice = m_streamlines->getLattice();
     const auto& noDynamics = streamlines::NoDynamics::getInstance();
     const auto& wallDynamics = m_streamlines->getWallDynamics();
 
     // Foreach nodes
-    for (auto&& c : range(lattice.getSize()))
+    for (auto&& c : range(m_streamlines->getLatticeSize()))
     {
-        const auto& node = lattice[c];
-        const auto& dynamics = node.getDynamics();
+        const auto& dynamics = m_streamlines->getDynamics(c);
 
         const bool flag = dynamics == noDynamics || dynamics == wallDynamics;
 

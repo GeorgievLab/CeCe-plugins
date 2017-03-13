@@ -87,7 +87,7 @@ public:
      */
     static PyObject* getLatticeSize(SelfType* self) noexcept
     {
-        return makeObject(self->value->getLattice().getSize()).release();
+        return makeObject(self->value->getLatticeSize()).release();
     }
 
 
@@ -112,11 +112,11 @@ public:
             return nullptr;
 
         // Check if is in range
-        const auto& lattice = self->value->getLattice();
-        const auto size = lattice.getSize();
+        const auto* module = self->value;
+        const auto size = module->getLatticeSize();
         const auto coord = plugin::streamlines::Lattice::CoordinateType(x, y);
 
-        if (!lattice.inRange(coord))
+        if (!module->inLatticeRange(coord))
         {
             OutStringStream oss;
             oss << "Coordinates [" << x << ", " << y << "] out of range [" << size.getWidth() << ", " << size.getHeight() << "]";
@@ -124,13 +124,7 @@ public:
             return nullptr;
         }
 
-        // Get lattice node
-        const auto& node = lattice[coord];
-
-        // FIXME: bool segfault
-        //return makeObject(node.getDynamics() == self->value->getWallDynamics()).release();
-
-        if (node.getDynamics() == self->value->getWallDynamics())
+        if (module->getDynamics(coord) == module->getWallDynamics())
             Py_RETURN_TRUE;
         else
             Py_RETURN_FALSE;
@@ -159,11 +153,11 @@ public:
             return nullptr;
 
         // Check if is in range
-        auto& lattice = self->value->getLattice();
-        const auto size = lattice.getSize();
+        auto* module = self->value;
+        const auto size = module->getLatticeSize();
         const auto coord = plugin::streamlines::Lattice::CoordinateType(x, y);
 
-        if (!lattice.inRange(coord))
+        if (!module->inLatticeRange(coord))
         {
             OutStringStream oss;
             oss << "Coordinates [" << x << ", " << y << "] out of range [" << size.getWidth() << ", " << size.getHeight() << "]";
@@ -171,13 +165,10 @@ public:
             return nullptr;
         }
 
-        // Get lattice node
-        auto& node = lattice[coord];
-
         if (flag)
-            node.setDynamics(self->value->getWallDynamics());
+            module->setDynamics(coord, module->getWallDynamics());
         else
-            node.setDynamics(self->value->getFluidDynamics());
+            module->setDynamics(coord, module->getFluidDynamics());
 
         return none().release();
     }
@@ -204,11 +195,11 @@ public:
             return nullptr;
 
         // Check if is in range
-        const auto& lattice = self->value->getLattice();
-        const auto size = lattice.getSize();
+        const auto* module = self->value;
+        const auto size = module->getLatticeSize();
         const auto coord = plugin::streamlines::Lattice::CoordinateType(x, y);
 
-        if (!lattice.inRange(coord))
+        if (!module->inLatticeRange(coord))
         {
             OutStringStream oss;
             oss << "Coordinates [" << x << ", " << y << "] out of range [" << size.getWidth() << ", " << size.getHeight() << "]";
@@ -216,14 +207,10 @@ public:
             return nullptr;
         }
 
-        // Converter
-        const auto& conv = self->value->getConverter();
+        // Obtain velocity
+        const auto vel = module->getVelocity(coord);
 
-        // Get lattice node
-        const auto& node = lattice[coord];
-
-        // Calculate velocity
-        return makeObject(conv.convertVelocity(node.computeVelocity())).release();
+        return makeObject(vel).release();
     }
 
 
@@ -249,11 +236,11 @@ public:
             return nullptr;
 
         // Check if is in range
-        auto& lattice = self->value->getLattice();
-        const auto size = lattice.getSize();
+        auto* module = self->value;
+        const auto size = module->getLatticeSize();
         const auto coord = plugin::streamlines::Lattice::CoordinateType(x, y);
 
-        if (!lattice.inRange(coord))
+        if (!module->inLatticeRange(coord))
         {
             OutStringStream oss;
             oss << "Coordinates [" << x << ", " << y << "] out of range [" << size.getWidth() << ", " << size.getHeight() << "]";
@@ -261,14 +248,8 @@ public:
             return nullptr;
         }
 
-        // Converter
-        const auto& conv = self->value->getConverter();
-
-        // Get lattice node
-        auto& node = lattice[coord];
-
         // Set velocity
-        node.defineVelocity(conv.convertVelocity(cast<units::VelocityVector>(vel)));
+        module->setVelocity(coord, cast<units::VelocityVector>(vel));
 
         return none().release();
     }

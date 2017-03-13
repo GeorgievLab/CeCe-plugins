@@ -1,5 +1,5 @@
 /* ************************************************************************ */
-/* Georgiev Lab (c) 2015-2016                                               */
+/* Georgiev Lab (c) 2015-2017                                               */
 /* ************************************************************************ */
 /* Department of Cybernetics                                                */
 /* Faculty of Applied Sciences                                              */
@@ -67,54 +67,41 @@ namespace streamlines {
 /* ************************************************************************ */
 
 /**
- * @brief Module for streamlines.
+ * @brief      Pressure unit.
+ */
+using Pressure = units::Unit<
+    units::List<units::BaseMass>,
+    units::List<units::BaseLength, units::BaseTime, units::BaseTime>
+>;
+
+/* ************************************************************************ */
+
+/**
+ * @brief      Module for streamlines.
  */
 class Module : public module::Module
 {
-
 
 // Public Ctors & Dtors
 public:
 
 
     /**
-     * @brief Constructor.
+     * @brief      Constructor.
      *
-     * @param simulation
+     * @param      simulation  The simulation.
      */
     Module(simulator::Simulation& simulation);
 
 
     /**
-     * @brief Destructor.
+     * @brief      Destructor.
      */
     virtual ~Module();
 
 
-// Public Accessors
+// Public Accessors & Mutators
 public:
-
-
-    /**
-     * @brief Returns grid.
-     *
-     * @return
-     */
-    Lattice& getLattice() noexcept
-    {
-        return m_lattice;
-    }
-
-
-    /**
-     * @brief Returns grid.
-     *
-     * @return
-     */
-    const Lattice& getLattice() const noexcept
-    {
-        return m_lattice;
-    }
 
 
     /**
@@ -216,10 +203,6 @@ public:
     }
 
 
-// Public Mutators
-public:
-
-
     /**
      * @brief Set init iteration count.
      *
@@ -284,6 +267,82 @@ public:
     {
         m_wallDynamics = std::move(dynamics);
     }
+
+
+    /**
+     * @brief      Returns the lattice size.
+     *
+     * @return     The lattice size.
+     */
+    Size getLatticeSize() const noexcept;
+
+
+    /**
+     * @brief      Check if given coordinate is in range.
+     *
+     * @param[in]  coord  The coordinate.
+     *
+     * @return     If coordinate is in range if lattice.
+     */
+    bool inLatticeRange(Coordinate coord) const noexcept;
+
+
+    /**
+     * @brief      Obtain physical velocity at given coordinate.
+     *
+     * @param[in]  coord  The coordinate.
+     *
+     * @return     The velocity.
+     */
+    units::VelocityVector getVelocity(Coordinate coord) const;
+
+
+    /**
+     * @brief      Change physical velocity at given coordinate.
+     *
+     * @param[in]  coord     The coordinate.
+     * @param[in]  velocity  The velocity.
+     */
+    void setVelocity(Coordinate coord, units::VelocityVector velocity);
+
+
+    /**
+     * @brief      Obtain physical pressure at given coordinate.
+     *
+     * @param[in]  coord  The coordinate.
+     *
+     * @return     The pressure.
+     */
+    Pressure getPressure(Coordinate coord) const;
+
+
+    /**
+     * @brief      Obtain dynamics at given coordinate.
+     *
+     * @param[in]  coord  The coordinate.
+     *
+     * @return     The dynamics.
+     */
+    ViewPtr<Dynamics> getDynamics(Coordinate coord) const;
+
+
+    /**
+     * @brief      Change dynamics at given coordinate.
+     *
+     * @param[in]  coord     The coordinate.
+     * @param[in]  dynamics  The dynamics.
+     */
+    void setDynamics(Coordinate coord, ViewPtr<Dynamics> dynamics);
+
+
+    /**
+     * @brief      Distribution values at given coordinate.
+     *
+     * @param[in]  coord  The coordinate.
+     *
+     * @return     The distribution functions.
+     */
+    Descriptor::DataType getDistribution(Coordinate coord) const;
 
 
 // Public Operations

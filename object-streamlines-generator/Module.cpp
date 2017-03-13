@@ -194,6 +194,10 @@ void Module::update()
     CECE_ASSERT(m_module);
     const auto& boundaries = m_module->getBoundaries();
     const auto& converter = m_module->getConverter();
+    const auto& lattice = m_module->getLattice();
+
+    const units::PositionVector start = worldSize * -0.5;
+    const auto step = getSimulation().getWorldSize() / lattice.getSize();
 
     // Foreach generated objects
     for (const auto& desc : m_objects)
@@ -299,6 +303,21 @@ void Module::update()
 
             object->configure(desc.config, simulation);
             object->setPosition(pos);
+
+            // Get coordinate to lattice
+            const auto coord = Coordinate((pos - start) / step);
+
+            if (!lattice.inRange(coord))
+                continue;
+
+            // Extract velocity from LB to match the flow
+            const auto velLB = lattice[coord].computeVelocity();
+
+            // Obtain physical velocity.
+            auto vel = converter.convertVelocity(velLB);
+
+            // Set object velocity
+            object->setVelocity(vel);
         }
     }
 

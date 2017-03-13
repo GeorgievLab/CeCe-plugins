@@ -274,6 +274,9 @@ void Module::loadConfig(const config::Configuration& config)
     m_visualizationLayerDensity = config.get("layer-density", m_visualizationLayerDensity);
 #endif
 
+    // Maximal force
+    m_maxForce = config.get("max-force", m_maxForce);
+
     // Get initialization file
     if (config.has("init-file"))
     {
@@ -768,21 +771,15 @@ void Module::applyToObject(object::Object& object)
 
         //Log::info("Force: (", force.getX(), ", ", force.getY(), ")");
 
-        // Calculate linear impulse from shapes
-        auto impulse = force * getSimulation().getTimeStep();
-
-        // Maximum impulse
-        const auto impulseMax = units::ImpulseVector(
-            units::Impulse(1e-10),
-            units::Impulse(1e-10)
-        );
-
-        // Impulse is to big
-        if (impulse.getLengthSquared() > impulseMax.getLengthSquared())
+        // Limit force
+        if (force.getLengthSquared() > m_maxForce.getLengthSquared())
         {
-            const RealType ratio = impulseMax.getLength() / impulse.getLength();
-            impulse *= ratio;
+            const RealType ratio = m_maxForce.getLength() / force.getLength();
+            force *= ratio;
         }
+
+        // Calculate linear impulse from shapes
+        const auto impulse = force * getSimulation().getTimeStep();
 
         // Apply impulse
         object.applyLinearImpulse(impulse);

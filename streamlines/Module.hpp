@@ -519,6 +519,8 @@ private:
     /// Map of moving obstacles (Grid uses std::vector and bool is an issue).
     Grid<char> m_movingObstacleMap;
 
+    /// Maximum force which can be applied to object.
+    units::ForceVector m_maxForce = {units::N(1), units::N(1)};
 };
 
 /* ************************************************************************ */

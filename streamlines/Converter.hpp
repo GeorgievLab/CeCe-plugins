@@ -419,7 +419,7 @@ private:
     units::Time m_charTime = units::s(1);
 
     /// Characteristic density.
-    units::Density m_charDensity = units::g(1) / units::cm3(1);
+    units::Density m_charDensity = units::g(1) / units::m3(1e-6);
 
     /// Number of LB nodes for units conversions.
     unsigned int m_numberNodes = 1;

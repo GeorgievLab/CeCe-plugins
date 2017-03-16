@@ -1,5 +1,5 @@
 /* ************************************************************************ */
-/* Georgiev Lab (c) 2015-2016                                               */
+/* Georgiev Lab (c) 2015-2017                                               */
 /* ************************************************************************ */
 /* Department of Cybernetics                                                */
 /* Faculty of Applied Sciences                                              */
@@ -41,7 +41,6 @@
 #include "../streamlines/Module.hpp"
 #include "../streamlines/Lattice.hpp"
 #include "../streamlines/Dynamics.hpp"
-#include "../streamlines/NoDynamics.hpp"
 
 /* ************************************************************************ */
 
@@ -100,14 +99,14 @@ void Module::updateSignal(SignalId id)
     // Update diffusion
     diffusion::Module::updateSignal(id);
 
-    Assert(m_streamlines);
+    CECE_ASSERT(m_streamlines);
 
     // Precompute values
     const auto step = getSimulation().getWorldSize() / getGridSize();
     const auto dt = getSimulation().getTimeStep() / getInnerIterations();
 
     // Same grid sizes
-    Assert(m_streamlines->getLatticeSize() == getGridSize());
+    CECE_ASSERT(m_streamlines->getLatticeSize() == getGridSize());
 
     for (IterationType i = 0; i < getInnerIterations(); ++i)
     {
@@ -133,8 +132,8 @@ void Module::updateSignal(SignalId id)
             // Distance change
             const auto ds = velocity * dt;
 
-            Assert(ds.getX() <= step.getX());
-            Assert(ds.getY() <= step.getY());
+            CECE_ASSERT(ds.getX() <= step.getX());
+            CECE_ASSERT(ds.getY() <= step.getY());
 
             // Transformation matrix
             const auto matrix = StaticMatrix<units::Area, MATRIX_SIZE>::generate([&](size_t i, size_t j) {
@@ -161,9 +160,9 @@ void Module::updateSignal(SignalId id)
             // Apply matrix
             matrix.for_each([&](size_t i, size_t j, RealType value) {
                 const auto coord = c + Coordinate(i, j) - OFFSET;
-                Assert(inRange(coord));
+                CECE_ASSERT(inRange(coord));
                 getSignalBack(id, coord) += signal * value;
-                Assert(getSignalBack(id, coord) >= Zero);
+                CECE_ASSERT(getSignalBack(id, coord) >= Zero);
             });
         }
 
@@ -179,17 +178,17 @@ void Module::updateObstacles()
     auto _ = measure_time("diffusion-streamlines.updateObstacles", simulator::TimeMeasurement(getSimulation()));
 
     // Copy data from streamlines
-    Assert(m_streamlines);
-
-    const auto& noDynamics = streamlines::NoDynamics::getInstance();
-    const auto& wallDynamics = m_streamlines->getWallDynamics();
+    CECE_ASSERT(m_streamlines);
 
     // Foreach nodes
     for (auto&& c : range(m_streamlines->getLatticeSize()))
     {
         const auto& dynamics = m_streamlines->getDynamics(c);
 
-        const bool flag = dynamics == noDynamics || dynamics == wallDynamics;
+        const bool flag =
+            dynamics == streamlines::Dynamics::None ||
+            dynamics == streamlines::Dynamics::Wall
+        ;
 
         // Set flag
         setObstacle(c, flag);

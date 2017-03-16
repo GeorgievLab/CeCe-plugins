@@ -70,6 +70,30 @@ namespace {
 
 constexpr StaticArray<char, 5> FILE_GUARD{{'C', 'E', 'S', 'L', '\0'}};
 
+/* ************************************************************************ */
+
+/**
+ * @brief      Parse array of values from string.
+ *
+ * @param      str   Source string.
+ *
+ * @tparam     T     Element type.
+ * @tparam     N     Number of result elements.
+ *
+ * @return     Array of result elements.
+ */
+template<typename T, size_t N>
+StaticArray<T, N> split(String str)
+{
+    StaticArray<T, N> array;
+    InStringStream is(std::move(str));
+
+    // Read values
+    for (size_t i = 0; i < N; ++i)
+        is >> std::skipws >> array[i];
+
+    return array;
+}
 
 /* ************************************************************************ */
 
@@ -228,10 +252,10 @@ void Module::init(AtomicBool& flag)
     if (m_converter.getViscosity() == 0.0)
         Log::warning("[streamlines] Zero viscosity means unstable simulation");
 
-    Log::info("[streamlines] Boundaries: ", m_boundaries.getCount());
+    Log::info("[streamlines] Boundaries: ", m_config.boundaries.size());
 
     // Initialize boundary positions
-    for (auto& boundary : m_boundaries)
+    for (auto& boundary : m_config.boundaries)
     {
         Log::info("[streamlines] Boundary: ", boundary.getName());
 
@@ -246,13 +270,13 @@ void Module::init(AtomicBool& flag)
     bool initialized = false;
 
     // Loading precomputed streamlines
-    if (!m_initFile.empty() && pathExists(m_initFile))
+    if (!m_config.initFile.empty() && pathExists(m_config.initFile))
     {
         try
         {
-            Log::info("[streamlines] Loading from external file: ", m_initFile);
+            Log::info("[streamlines] Loading from external file: ", m_config.initFile);
 
-            loadFromFile(m_initFile);
+            loadFromFile(m_config.initFile);
             initialized = true;
         }
         catch (const Exception& e)
@@ -286,11 +310,11 @@ void Module::init(AtomicBool& flag)
         }
 
         // Store precomputed streamlines
-        if (!m_initFile.empty())
+        if (!m_config.initFile.empty())
         {
-            Log::info("[streamlines] Store streamlines into file: ", m_initFile);
-            storeToFile(m_initFile);
-            Log::info("[streamlines] Streamlines stored in file: ", m_initFile);
+            Log::info("[streamlines] Store streamlines into file: ", m_config.initFile);
+            storeToFile(m_config.initFile);
+            Log::info("[streamlines] Streamlines stored in file: ", m_config.initFile);
         }
     }
 
@@ -334,7 +358,94 @@ void Module::loadConfig(const config::Configuration& config)
     setInnerIterations(config.get("inner-iterations", getInnerIterations()));
 
     // Load boundaries config
-    m_boundaries.loadConfig(config);
+    {
+        auto initDefault = [&] {
+            if (!m_config.boundaries.empty())
+                return;
+
+            m_config.boundaries.resize(4);
+
+            for (int i = 0; i < 4; ++i)
+                m_config.boundaries[i].setPosition(static_cast<Boundary::Position>(i));
+        };
+
+        // Layout
+        if (config.has("layout"))
+        {
+            // Create default
+            initDefault();
+
+            const auto layout = split<String, 4>(config.get("layout"));
+
+            for (size_t i = 0; i < layout.size(); ++i)
+            {
+                if (layout[i] == "inlet")
+                    m_config.boundaries[i].setType(Boundary::Type::Inlet);
+                else if (layout[i] == "outlet")
+                    m_config.boundaries[i].setType(Boundary::Type::Outlet);
+                else
+                    m_config.boundaries[i].setType(Boundary::Type::None);
+            }
+        }
+
+        // Inlet velocities
+        if (config.has("inlet-velocity"))
+        {
+            initDefault();
+
+            const auto velocity = config.get<units::Velocity>("inlet-velocity");
+
+            for (auto& boundary : m_config.boundaries)
+                boundary.setInletVelocity(velocity);
+        }
+        else if (config.has("inlet-velocities"))
+        {
+            initDefault();
+
+            const auto velocities = split<units::Velocity, 4>(config.get("inlet-velocities"));
+
+            for (size_t i = 0; i < velocities.size(); ++i)
+                m_config.boundaries[i].setInletVelocity(velocities[i]);
+        }
+
+        if (config.has("inlet-type"))
+        {
+            initDefault();
+
+            const auto typeStr = config.get<String>("inlet-type");
+            Boundary::InletProfileType type = Boundary::InletProfileType::Auto;
+
+            if (typeStr == "constant")
+                type = Boundary::InletProfileType::Constant;
+
+            for (auto& boundary : m_config.boundaries)
+                boundary.setInletProfileType(type);
+        }
+        else if (config.has("inlet-types"))
+        {
+            initDefault();
+
+            const auto types = split<String, 4>(config.get("inlet-types"));
+
+            for (size_t i = 0; i < types.size(); ++i)
+            {
+                Boundary::InletProfileType type = Boundary::InletProfileType::Auto;
+
+                if (types[i] == "constant")
+                    type = Boundary::InletProfileType::Constant;
+
+                m_config.boundaries[i].setInletProfileType(type);
+            }
+        }
+
+        // Inlets
+        for (auto&& boundaryConfig : config.getConfigurations("boundary"))
+        {
+            Boundary boundary;
+            boundary.loadConfig(boundaryConfig);
+            m_config.boundaries.push_back(std::move(boundary));
+        }
+    }
 
     // Units converter
     {
@@ -359,19 +470,19 @@ void Module::loadConfig(const config::Configuration& config)
     // Enable dynamic object obstacles
     setDynamicObjectsObstacles(config.get("dynamic-object-obstacles", isDynamicObjectsObstacles()));
 
-    m_circleObstacleScale = config.get("dynamic-object-circle-scale", m_circleObstacleScale);
+    m_config.circleObstacleScale = config.get("dynamic-object-circle-scale", m_config.circleObstacleScale);
 
 #ifdef CECE_RENDER
     // Visualization
     {
-        m_visualizationLayerDynamicsType = config.get("layer-dynamics", m_visualizationLayerDynamicsType);
-        m_visualizationLayerMagnitude = config.get("layer-magnitude", m_visualizationLayerMagnitude);
-        m_visualizationLayerDensity = config.get("layer-density", m_visualizationLayerDensity);
+        m_render.layerDynamics = config.get("layer-dynamics", m_render.layerDynamics);
+        m_render.layerMagnitude = config.get("layer-magnitude", m_render.layerMagnitude);
+        m_render.layerDensity = config.get("layer-density", m_render.layerDensity);
     }
 #endif
 
     // Maximal force
-    m_maxForce = config.get("max-force", m_maxForce);
+    m_config.maxForce = config.get("max-force", m_config.maxForce);
 
     // Get initialization file
     if (config.has("init-file"))
@@ -381,9 +492,9 @@ void Module::loadConfig(const config::Configuration& config)
 
         // In case of %temp%
         if (file.substr(0, 6) == "%temp%")
-            m_initFile = tempDirectory() / file.substr(6);
+            m_config.initFile = tempDirectory() / file.substr(6);
         else
-            m_initFile = file;
+            m_config.initFile = file;
     }
 }
 
@@ -402,42 +513,42 @@ void Module::storeConfig(config::Configuration& config) const
 void Module::draw(const simulator::Visualization& visualization, render::Context& context)
 {
     const auto size = m_lattice->getSize();
-    const bool drawDynamicsType = visualization.isEnabled(m_visualizationLayerDynamicsType);
-    const bool drawMagnitude = visualization.isEnabled(m_visualizationLayerMagnitude);
-    const bool drawDensity = visualization.isEnabled(m_visualizationLayerDensity);
+    const bool drawDynamics = visualization.isEnabled(m_render.layerDynamics);
+    const bool drawMagnitude = visualization.isEnabled(m_render.layerMagnitude);
+    const bool drawDensity = visualization.isEnabled(m_render.layerDensity);
 
-    if (drawDynamicsType && !m_drawableDynamicsType)
-        m_drawableDynamicsType.create(context, size);
+    if (drawDynamics && !m_render.dynamics)
+        m_render.dynamics.create(context, size);
 
-    if (drawMagnitude && !m_drawableMagnitude)
-        m_drawableMagnitude.create(context, size);
+    if (drawMagnitude && !m_render.magnitude)
+        m_render.magnitude.create(context, size);
 
-    if (drawDensity && !m_drawableDensity)
-        m_drawableDensity.create(context, size);
+    if (drawDensity && !m_render.density)
+        m_render.density.create(context, size);
 
-    const RenderState& state = m_drawableState.getFront();
+    const RenderState& state = m_render.state.getFront();
 
-    if (drawDynamicsType && m_drawableDynamicsType)
-        m_drawableDynamicsType->setImage(state.imageDynamicsType);
+    if (drawDynamics && m_render.dynamics)
+        m_render.dynamics->setImage(state.imageDynamics);
 
-    if (drawMagnitude && m_drawableMagnitude)
-        m_drawableMagnitude->setImage(state.imageMagnitude);
+    if (drawMagnitude && m_render.magnitude)
+        m_render.magnitude->setImage(state.imageMagnitude);
 
-    if (drawDensity && m_drawableDensity)
-        m_drawableDensity->setImage(state.imageDensity);
+    if (drawDensity && m_render.density)
+        m_render.density->setImage(state.imageDensity);
 
     // Draw color grid
     context.matrixPush();
     context.matrixScale(state.scale);
 
-    if (drawDynamicsType && m_drawableDynamicsType)
-        m_drawableDynamicsType->draw(context);
+    if (drawDynamics && m_render.dynamics)
+        m_render.dynamics->draw(context);
 
-    if (drawMagnitude && m_drawableMagnitude)
-        m_drawableMagnitude->draw(context);
+    if (drawMagnitude && m_render.magnitude)
+        m_render.magnitude->draw(context);
 
-    if (drawDensity && m_drawableDensity)
-        m_drawableDensity->draw(context);
+    if (drawDensity && m_render.density)
+        m_render.density->draw(context);
 
     context.matrixPop();
 }
@@ -449,17 +560,17 @@ void Module::draw(const simulator::Visualization& visualization, render::Context
 void Module::drawStoreState(const simulator::Visualization& visualization)
 {
     const auto size = m_lattice->getSize();
-    const bool drawDynamicsType = visualization.isEnabled(m_visualizationLayerDynamicsType);
-    const bool drawMagnitude = visualization.isEnabled(m_visualizationLayerMagnitude);
-    const bool drawDensity = visualization.isEnabled(m_visualizationLayerDensity);
+    const bool drawDynamicsType = visualization.isEnabled(m_render.layerDynamics);
+    const bool drawMagnitude = visualization.isEnabled(m_render.layerMagnitude);
+    const bool drawDensity = visualization.isEnabled(m_render.layerDensity);
 
     // Render state
-    RenderState& state = m_drawableState.getBack();
+    RenderState& state = m_render.state.getBack();
 
     state.scale = getSimulation().getWorldSize() / units::Length(1);
 
     // Resize image
-    state.imageDynamicsType.resize(size);
+    state.imageDynamics.resize(size);
     state.imageMagnitude.resize(size);
     state.imageDensity.resize(size);
 
@@ -516,7 +627,7 @@ void Module::drawStoreState(const simulator::Visualization& visualization)
             }
 
             // Store color
-            state.imageDynamicsType.set(c, color);
+            state.imageDynamics.set(c, color);
         }
 
         if (drawMagnitude)
@@ -563,7 +674,7 @@ void Module::drawStoreState(const simulator::Visualization& visualization)
 #ifdef CECE_RENDER
 void Module::drawSwapState()
 {
-    m_drawableState.swap();
+    m_render.state.swap();
 }
 #endif
 
@@ -615,7 +726,7 @@ void Module::updateDynamics()
             auto shp = shape;
 
             if (shp.getType() == ShapeType::Circle)
-                shp.getCircle().radius *= m_circleObstacleScale;
+                shp.getCircle().radius *= m_config.circleObstacleScale;
 
             mapShapeToGrid(
                 [&, this] (Coordinate&& coord) {
@@ -920,7 +1031,7 @@ void Module::updateObjectDynamic(object::Object& object)
         auto shp = shape;
 
         if (shp.getType() == ShapeType::Circle)
-            shp.getCircle().radius *= m_circleObstacleScale;
+            shp.getCircle().radius *= m_config.circleObstacleScale;
 
         // Store force for each coordinate
         mapShapeToGrid(
@@ -952,9 +1063,9 @@ void Module::updateObjectDynamic(object::Object& object)
     //Log::info("Force: (", force.getX(), ", ", force.getY(), ")");
 
     // Limit force
-    if (force.getLengthSquared() > m_maxForce.getLengthSquared())
+    if (force.getLengthSquared() > m_config.maxForce.getLengthSquared())
     {
-        const RealType ratio = m_maxForce.getLength() / force.getLength();
+        const RealType ratio = m_config.maxForce.getLength() / force.getLength();
         force *= ratio;
     }
 
@@ -1008,7 +1119,7 @@ void Module::removeUnreachableDynamics(Dynamics dynamics)
 
 void Module::updateBoundaries()
 {
-    for (const auto& boundary : m_boundaries)
+    for (const auto& boundary : m_config.boundaries)
         updateBoundary(boundary);
 }
 
@@ -1222,7 +1333,7 @@ void Module::storeToFile(const FilePath& filename)
     out.write(m_converter.getTau());
 
     // Number of init iterations
-    out.write(m_initIterations);
+    out.write(m_config.initIterations);
 
     for (auto&& c : range(m_lattice->getSize()))
     {
@@ -1268,10 +1379,10 @@ void Module::loadFromFile(const FilePath& filename)
     if (tau != m_converter.getTau())
         throw InvalidArgumentException("Cannot load from file: different relaxation times");
 
-    decltype(m_initIterations) iterations;
+    decltype(m_config.initIterations) iterations;
     in.read(iterations);
 
-    if (iterations != m_initIterations)
+    if (iterations != m_config.initIterations)
         throw InvalidArgumentException("Cannot load from file: different init iterations");
 
     // Foreach lattice

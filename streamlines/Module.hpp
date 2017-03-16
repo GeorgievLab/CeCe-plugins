@@ -54,7 +54,7 @@
 #endif
 
 // Plugin
-#include "Boundaries.hpp"
+#include "Boundary.hpp"
 #include "Lattice.hpp"
 #include "Converter.hpp"
 #include "Descriptor.hpp"
@@ -158,7 +158,7 @@ public:
      *
      * @return     The boundaries.
      */
-    const Boundaries& getBoundaries() const noexcept;
+    const DynamicArray<Boundary>& getBoundaries() const noexcept;
 
 
     /**
@@ -426,7 +426,7 @@ private:
     struct RenderState
     {
         units::ScaleVector scale;
-        render::Image imageDynamicsType;
+        render::Image imageDynamics;
         render::Image imageMagnitude;
         render::Image imageDensity;
     };
@@ -441,55 +441,62 @@ private:
     /// Lattice implementation.
     UniquePtr<Lattice> m_lattice;
 
-    /// Number of init iterations.
-    IterationType m_initIterations = 0;
+    struct
+    {
+        /// Number of init iterations.
+        IterationType initIterations = 0;
 
-    /// Number of inner iterations.
-    IterationType m_innerIterations = 1;
+        /// Number of inner iterations.
+        IterationType innerIterations = 1;
 
-    /// If streamlines is updated during simulation iterations.
-    bool m_dynamic = true;
+        /// If streamlines is updated during simulation iterations.
+        bool dynamic = true;
 
-    /// Boundaries.
-    Boundaries m_boundaries;
+        /// Path to initialization file.
+        FilePath initFile;
 
-    /// Path to initialization file.
-    FilePath m_initFile;
+        /// Use dynamic objects as obstacles
+        bool dynamicObjectsObstacles = false;
 
-    /// Use dynamic objects as obstacles
-    bool m_dynamicObjectsObstacles = false;
+        /// Scaling for circle obstacle.
+        RealType circleObstacleScale = 1.0;
 
-    /// Scaling for circle obstacle.
-    RealType m_circleObstacleScale = 1.0;
+        /// Boundaries.
+        DynamicArray<Boundary> boundaries;
 
-#ifdef CECE_RENDER
-    /// Name of layer for flow dynamics type visualization.
-    String m_visualizationLayerDynamicsType;
-
-    /// Name of layer for velocity magnitude visualization.
-    String m_visualizationLayerMagnitude;
-
-    /// Name of layer for density visualization.
-    String m_visualizationLayerDensity;
-
-    /// Rendering grid with dynamics type.
-    render::ObjectPtr<render::GridColor> m_drawableDynamicsType;
-
-    /// Rendering grid with magnitude.
-    render::ObjectPtr<render::GridColorColorMap> m_drawableMagnitude;
-
-    /// Rendering grid with density.
-    render::ObjectPtr<render::GridColorColorMap> m_drawableDensity;
-
-    /// Render state.
-    render::State<RenderState> m_drawableState;
-#endif
+        /// Maximum force which can be applied to object.
+        units::ForceVector maxForce = {units::N(1), units::N(1)};
+    } m_config;
 
     /// Map of moving obstacles (Grid uses std::vector and bool is an issue).
     Grid<char> m_movingObstacleMap;
 
-    /// Maximum force which can be applied to object.
-    units::ForceVector m_maxForce = {units::N(1), units::N(1)};
+#ifdef CECE_RENDER
+    struct
+    {
+        /// Name of layer for flow dynamics type visualization.
+        String layerDynamics;
+
+        /// Name of layer for velocity magnitude visualization.
+        String layerMagnitude;
+
+        /// Name of layer for density visualization.
+        String layerDensity;
+
+        /// Rendering grid with dynamics type.
+        render::ObjectPtr<render::GridColor> dynamics;
+
+        /// Rendering grid with magnitude.
+        render::ObjectPtr<render::GridColorColorMap> magnitude;
+
+        /// Rendering grid with density.
+        render::ObjectPtr<render::GridColorColorMap> density;
+
+        /// Render state.
+        render::State<RenderState> state;
+    } m_render;
+#endif
+
 };
 
 /* ************************************************************************ */
@@ -524,63 +531,63 @@ inline Converter& Module::getConverter() noexcept
 
 inline IterationType Module::getInitIterations() const noexcept
 {
-    return m_initIterations;
+    return m_config.initIterations;
 }
 
 /* ************************************************************************ */
 
 inline void Module::setInitIterations(IterationType iterations) noexcept
 {
-    m_initIterations = iterations;
+    m_config.initIterations = iterations;
 }
 
 /* ************************************************************************ */
 
 inline IterationType Module::getInnerIterations() const noexcept
 {
-    return m_innerIterations;
+    return m_config.innerIterations;
 }
 
 /* ************************************************************************ */
 
 inline void Module::setInnerIterations(IterationType iterations) noexcept
 {
-    m_innerIterations = iterations;
+    m_config.innerIterations = iterations;
 }
 
 /* ************************************************************************ */
 
-inline const Boundaries& Module::getBoundaries() const noexcept
+inline const DynamicArray<Boundary>& Module::getBoundaries() const noexcept
 {
-    return m_boundaries;
+    return m_config.boundaries;
 }
 
 /* ************************************************************************ */
 
 inline bool Module::isDynamicObjectsObstacles() const noexcept
 {
-    return m_dynamicObjectsObstacles;
+    return m_config.dynamicObjectsObstacles;
 }
 
 /* ************************************************************************ */
 
 inline void Module::setDynamicObjectsObstacles(bool flag) noexcept
 {
-    m_dynamicObjectsObstacles = flag;
+    m_config.dynamicObjectsObstacles = flag;
 }
 
 /* ************************************************************************ */
 
 inline bool Module::isDynamic() const noexcept
 {
-    return m_dynamic;
+    return m_config.dynamic;
 }
 
 /* ************************************************************************ */
 
 inline void Module::setDynamic(bool flag)
 {
-    m_dynamic = flag;
+    m_config.dynamic = flag;
 }
 
 /* ************************************************************************ */

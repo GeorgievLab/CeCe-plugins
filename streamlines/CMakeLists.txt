@@ -41,8 +41,6 @@ build_plugin(streamlines
         Boundary.cpp
         Converter.hpp
         Converter.cpp
-        Boundaries.hpp
-        Boundaries.cpp
 
         # CPU
         cpu/Lattice.cpp

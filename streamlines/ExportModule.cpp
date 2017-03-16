@@ -1,5 +1,5 @@
 /* ************************************************************************ */
-/* Georgiev Lab (c) 2015-2016                                               */
+/* Georgiev Lab (c) 2015-2017                                               */
 /* ************************************************************************ */
 /* Department of Cybernetics                                                */
 /* Faculty of Applied Sciences                                              */
@@ -37,7 +37,6 @@
 // Plugin
 #include "Module.hpp"
 #include "Descriptor.hpp"
-#include "NoDynamics.hpp"
 
 /* ************************************************************************ */
 
@@ -104,7 +103,7 @@ void ExportModule::update()
     for (auto&& c : range(m_module->getLatticeSize()))
     {
         // Do not save data with no dynamics
-        if (m_module->getDynamics(c) == NoDynamics::getInstance())
+        if (m_module->getDynamics(c) == Dynamics::None)
             continue;
 
         const auto vel = m_module->getVelocity(c);
@@ -112,7 +111,7 @@ void ExportModule::update()
 
         if (isPopulationsExported())
         {
-            const auto& data = m_module->getDistribution(c);
+            const auto& data = m_module->getDistributions(c);
 
             writeRecord(
                 sim.getIteration(),

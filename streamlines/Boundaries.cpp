@@ -1,5 +1,5 @@
 /* ************************************************************************ */
-/* Georgiev Lab (c) 2015-2016                                               */
+/* Georgiev Lab (c) 2015-2017                                               */
 /* ************************************************************************ */
 /* Department of Cybernetics                                                */
 /* Faculty of Applied Sciences                                              */
@@ -50,20 +50,23 @@ namespace {
 /* ************************************************************************ */
 
 /**
- * @brief Parse array of values from string.
+ * @brief      Parse array of values from string.
  *
- * @param str Source string.
+ * @param      str   Source string.
  *
- * @return
+ * @tparam     T     Element type.
+ * @tparam     N     Number of result elements.
+ *
+ * @return     Array of result elements.
  */
-template<typename T, std::size_t N>
+template<typename T, size_t N>
 StaticArray<T, N> split(String str)
 {
     StaticArray<T, N> array;
     InStringStream is(std::move(str));
 
     // Read values
-    for (std::size_t i = 0; i < N; ++i)
+    for (size_t i = 0; i < N; ++i)
         is >> std::skipws >> array[i];
 
     return array;
@@ -71,16 +74,6 @@ StaticArray<T, N> split(String str)
 
 /* ************************************************************************ */
 
-}
-
-/* ************************************************************************ */
-
-Boundaries::Boundaries(simulator::Simulation& simulation)
-    : m_simulation(simulation)
-{
-    // Initialize boundary positions
-    for (std::size_t i = 0; i < m_boundaries.size(); ++i)
-        m_boundaries[i].setPosition(static_cast<Boundary::Position>(i));
 }
 
 /* ************************************************************************ */
@@ -111,32 +104,6 @@ ViewPtr<const Boundary> Boundaries::find(StringView name) const noexcept
 
 /* ************************************************************************ */
 
-bool Boundaries::isBoundaryDynamics(ViewPtr<Dynamics> dynamics) const noexcept
-{
-    for (const auto& boundary : m_boundaries)
-    {
-        if (boundary.getDynamics() == dynamics)
-            return true;
-    }
-
-    return false;
-}
-
-/* ************************************************************************ */
-
-bool Boundaries::isBoundaryDynamics(ViewPtr<Dynamics> dynamics, Boundary::Type type) const noexcept
-{
-    for (const auto& boundary : m_boundaries)
-    {
-        if ((boundary.getDynamics() == dynamics) && (boundary.getType() == type))
-            return true;
-    }
-
-    return false;
-}
-
-/* ************************************************************************ */
-
 void Boundaries::initDefault()
 {
     if (!m_boundaries.empty())
@@ -146,31 +113,6 @@ void Boundaries::initDefault()
 
     for (int i = 0; i < 4; ++i)
         m_boundaries[i].setPosition(static_cast<Boundary::Position>(i));
-}
-
-/* ************************************************************************ */
-
-void Boundaries::init(Lattice& lattice, ViewPtr<Dynamics> fluidDynamics)
-{
-    // Nothing to do
-}
-
-/* ************************************************************************ */
-
-void Boundaries::updateBlocks(Lattice& lattice, Converter& converter, ViewPtr<Dynamics> fluidDynamics)
-{
-    // Apply boundary conditions
-    for (auto& boundary : m_boundaries)
-        boundary.updateBlocks(lattice, converter, fluidDynamics);
-}
-
-/* ************************************************************************ */
-
-void Boundaries::applyConditions(Lattice& lattice, Converter& converter, ViewPtr<Dynamics> fluidDynamics)
-{
-    // Apply boundary conditions
-    for (auto& boundary : m_boundaries)
-        boundary.apply(lattice, converter, fluidDynamics);
 }
 
 /* ************************************************************************ */
@@ -185,7 +127,7 @@ void Boundaries::loadConfig(const config::Configuration& config)
 
         const auto layout = split<String, 4>(config.get("layout"));
 
-        for (std::size_t i = 0; i < layout.size(); ++i)
+        for (size_t i = 0; i < layout.size(); ++i)
         {
             if (layout[i] == "inlet")
                 m_boundaries[i].setType(Boundary::Type::Inlet);
@@ -212,7 +154,7 @@ void Boundaries::loadConfig(const config::Configuration& config)
 
         const auto velocities = split<units::Velocity, 4>(config.get("inlet-velocities"));
 
-        for (std::size_t i = 0; i < velocities.size(); ++i)
+        for (size_t i = 0; i < velocities.size(); ++i)
             m_boundaries[i].setInletVelocity(velocities[i]);
     }
 
@@ -235,7 +177,7 @@ void Boundaries::loadConfig(const config::Configuration& config)
 
         const auto types = split<String, 4>(config.get("inlet-types"));
 
-        for (std::size_t i = 0; i < types.size(); ++i)
+        for (size_t i = 0; i < types.size(); ++i)
         {
             Boundary::InletProfileType type = Boundary::InletProfileType::Auto;
 

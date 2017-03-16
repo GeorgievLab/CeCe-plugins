@@ -54,11 +54,7 @@
 #include "cece/simulator/Visualization.hpp"
 
 // Plugin
-#include "NoDynamics.hpp"
-#include "BounceBackDynamics.hpp"
-#include "BgkDynamics.hpp"
-#include "ZouHeDynamics.hpp"
-#include "MovingDynamics.hpp"
+#include "cpu/Lattice.hpp"
 
 /* ************************************************************************ */
 
@@ -74,6 +70,110 @@ namespace {
 
 constexpr StaticArray<char, 5> FILE_GUARD{{'C', 'E', 'S', 'L', '\0'}};
 
+
+/* ************************************************************************ */
+
+/**
+ * @brief      Calculare edge block.
+ *
+ * @param      offset  Center offset.
+ * @param      size    Boundary size.
+ * @param      count   Total lattice size.
+ *
+ * @return     The range of indices for boundary.
+ */
+Range<int> getBoundaryBlock(int offset, int size, int count) noexcept
+{
+    if (size == 0)
+        size = count;
+
+    const int off = count / 2 + offset;
+    const int siz = size / 2;
+
+    return {off - siz, off + siz};
+}
+
+/* ************************************************************************ */
+
+/**
+ * @brief      Split boundary block to multiple blocks according to fluid
+ *             dynamics in the lattice.
+ *
+ * @param      lattice        The lattice
+ * @param      range          The range
+ * @param      fluidDynamics  The fluid dynamics
+ * @param      coordFn        The coordinate function
+ *
+ * @tparam     CoordFn        Coordinate function.
+ *
+ * @return     List of index ranges.
+ */
+template<typename CoordFn>
+DynamicArray<Range<int>> detectBoundaryBlocks(
+    const Lattice& lattice, Range<int> range, CoordFn coordFn
+) noexcept
+{
+    DynamicArray<Range<int>> blocks;
+
+    // Foreach boundary edge
+    for (int i = range.first(); i < range.last(); ++i)
+    {
+        const auto dynamics1 = lattice.getDynamics(coordFn(i));
+
+        if (dynamics1 != Dynamics::Fluid)
+            continue;
+
+        const int start = i++;
+
+        // Inner block
+        for (; i < range.last(); ++i)
+        {
+            const auto dynamics2 = lattice.getDynamics(coordFn(i));
+
+            if (dynamics2 != Dynamics::Fluid)
+                break;
+        }
+
+        // Insert block
+        blocks.push_back({start, i});
+    }
+
+    return blocks;
+}
+
+/* ************************************************************************ */
+
+/**
+ * @brief      Set boundary blocks to lattice.
+ *
+ * @param      lattice  The lattice
+ * @param      blocks   The blocks
+ * @param      coordFn  The coordinate function
+ * @param      setFn    The set function
+ *
+ * @tparam     CoordFn  Coordinate function.
+ * @tparam     SetFn    Apply function.
+ */
+template<typename CoordFn, typename SetFn>
+void setBoundaryBlocks(
+    Lattice& lattice, const DynamicArray<Range<int>>& blocks,
+    CoordFn coordFn, SetFn setFn
+) noexcept
+{
+    // Foreach blocks
+    for (const auto& block : blocks)
+    {
+        for (auto i = block.first(); i < block.last(); ++i)
+        {
+            const auto c = coordFn(i);
+
+            // Set boundary dynamics
+            if (lattice.getDynamics(c) == Dynamics::Fluid)
+                setFn(c, block.getSize());
+        }
+    }
+}
+
 /* ************************************************************************ */
 
 }
@@ -82,7 +182,6 @@ constexpr StaticArray<char, 5> FILE_GUARD{{'C', 'E', 'S', 'L', '\0'}};
 
 Module::Module(simulator::Simulation& simulation)
     : module::Module(simulation)
-    , m_boundaries(simulation)
 {
     // Nothing to do
 }
@@ -93,73 +192,41 @@ Module::~Module() = default;
 
 /* ************************************************************************ */
 
-Size Module::getLatticeSize() const noexcept
-{
-    return m_lattice.getSize();
-}
-
-/* ************************************************************************ */
-
-bool Module::inLatticeRange(Coordinate coord) const noexcept
-{
-    return m_lattice.inRange(coord);
-}
-
-/* ************************************************************************ */
-
-units::VelocityVector Module::getVelocity(Coordinate coord) const
-{
-    return m_converter.convertVelocity(m_lattice[coord].computeVelocity());
-}
-
-/* ************************************************************************ */
-
-void Module::setVelocity(Coordinate coord, units::VelocityVector velocity)
-{
-    m_lattice[coord].defineVelocity(m_converter.convertVelocity(velocity));
-}
-
-/* ************************************************************************ */
-
-Pressure Module::getPressure(Coordinate coord) const
-{
-    return Pressure(m_lattice[coord].computeDensity());
-}
-
-/* ************************************************************************ */
-
-ViewPtr<Dynamics> Module::getDynamics(Coordinate coord) const
-{
-    return m_lattice[coord].getDynamics();
-}
-
-/* ************************************************************************ */
-
-void Module::setDynamics(Coordinate coord, ViewPtr<Dynamics> dynamics)
-{
-    m_lattice[coord].setDynamics(dynamics);
-}
-
-/* ************************************************************************ */
-
-Descriptor::DataType Module::getDistribution(Coordinate coord) const
-{
-    return m_lattice[coord].getData();
-}
-
-/* ************************************************************************ */
-
 void Module::init(AtomicBool& flag)
 {
-    // Prepare pool for moving obstacle object
-    MovingDynamics::poolPrepare(m_lattice.getSize().getWidth() * m_lattice.getSize().getHeight());
+    // Calculate lattice size
+    const auto size = Lattice::SizeType(
+        getSimulation().getWorldSize() / m_converter.getCharLength() * m_converter.getNumberNodes()
+    ) + Lattice::SizeType(1, 1);
 
-    // Print simulation info
-    printInfo();
+    // Create a lattice
+    m_lattice = makeUnique<cpu::Lattice>(size, m_converter.getOmega());
 
-    // Set fluid dynamics
-    setFluidDynamics(createFluidDynamics());
-    setWallDynamics(createWallDynamics());
+    if (m_lattice->getSize() == Zero)
+        throw InvalidArgumentException("[streamlines] Zero size lattice");
+
+    // Allocate moving obstacle map
+    m_movingObstacleMap.resize(size);
+
+    Log::info("[streamlines] Viscosity: ", m_converter.getKinematicViscosity(), " um2/s");
+    Log::info("[streamlines] Max object speed: ", getSimulation().getMaxObjectTranslation(), " um/it");
+    Log::info("[streamlines] Char. length: ", m_converter.getCharLength(), " um");
+    Log::info("[streamlines] Char. time: ", m_converter.getCharTime(), " s");
+    Log::info("[streamlines] Char. speed: ", m_converter.getCharVelocity(), " um/s");
+    Log::info("[streamlines] Number of nodes: ", m_converter.getNumberNodes());
+    Log::info("[streamlines] Number of time steps: ", m_converter.getNumberSteps());
+    Log::info("[streamlines] Re: ", m_converter.getRe());
+    Log::info("[streamlines] ## Lattice ##");
+    Log::info("[streamlines] Tau: ", m_converter.getTau());
+    Log::info("[streamlines] Omega: ", m_converter.getOmega());
+    Log::info("[streamlines] Size: (", size.getWidth(), "; ", size.getHeight(), ")");
+    Log::info("[streamlines] Viscosity: ", m_converter.getViscosity());
+
+    if (m_converter.getTau() > 5.0)
+        Log::warning("[streamlines] Relaxation parameter Tau is too large and can cause unexpected behaviour");
+
+    if (m_converter.getViscosity() == 0.0)
+        Log::warning("[streamlines] Zero viscosity means unstable simulation");
 
     Log::info("[streamlines] Boundaries: ", m_boundaries.getCount());
 
@@ -167,24 +234,18 @@ void Module::init(AtomicBool& flag)
     for (auto& boundary : m_boundaries)
     {
         Log::info("[streamlines] Boundary: ", boundary.getName());
-        boundary.setDynamics(createBorderDynamics(boundary.getPosition()));
+
+        // TODO: define BC for lattice
     }
 
-    // Initialize boundaries
-    m_boundaries.init(m_lattice, getFluidDynamics());
-
-    // Obstacles
-    updateObstacleMap();
-
-    // Initialize lattice to equilibrium
-    m_lattice.initEquilibrium();
-
-    applyBoundaryConditions();
+    // Init lattice from to simulation objects.
+    updateDynamics();
 
     Log::info("[streamlines] Initialization...");
 
     bool initialized = false;
 
+    // Loading precomputed streamlines
     if (!m_initFile.empty() && pathExists(m_initFile))
     {
         try
@@ -202,7 +263,11 @@ void Module::init(AtomicBool& flag)
 
     if (!initialized)
     {
-        m_lattice.initEquilibrium();
+        // Initialize with zero velocity and default density
+        m_lattice->initDefault();
+
+        if (getInitIterations() == 0 && !isDynamic())
+            Log::warning("[streamlines] Static simulation without precomputed streamlines!");
 
         // Initialization iterations
         for (IterationType it = 1; it <= getInitIterations(); it++)
@@ -216,52 +281,40 @@ void Module::init(AtomicBool& flag)
                 return;
             }
 
-            m_lattice.collideAndStream();
-
-            // Apply boundary conditions
-            applyBoundaryConditions();
+            // Update lattice
+            m_lattice->update();
         }
 
-        // Store initialization
+        // Store precomputed streamlines
         if (!m_initFile.empty())
         {
+            Log::info("[streamlines] Store streamlines into file: ", m_initFile);
             storeToFile(m_initFile);
+            Log::info("[streamlines] Streamlines stored in file: ", m_initFile);
         }
     }
 
     Log::info("[streamlines] Initialization done.");
-
-    if (getInitIterations() == 0 && !isDynamic())
-        Log::warning("[streamlines] Static simulation without initialization!");
 }
 
 /* ************************************************************************ */
 
 void Module::update()
 {
-    Assert(m_lattice.getSize() != Zero);
-
     auto _ = measure_time("streamlines", simulator::TimeMeasurement(getSimulation()));
 
     // No recalculation
     if (isDynamic())
     {
-        // Obstacles
-        updateObstacleMap();
+        // Update dynamics
+        updateDynamics();
 
-        // Compute inner iterations
-        for (IterationType it = 0; it < getInnerIterations(); it++)
-        {
-            // Collide and propagate
-            m_lattice.collideAndStream();
-
-            // Apply boundary conditions
-            applyBoundaryConditions();
-        }
+        // Update lattice
+        m_lattice->update(getInnerIterations());
     }
 
-    // Apply streamlines to world objects
-    applyToObjects();
+    // Update simulation objects
+    updateObjects();
 }
 
 /* ************************************************************************ */
@@ -283,41 +336,25 @@ void Module::loadConfig(const config::Configuration& config)
     // Load boundaries config
     m_boundaries.loadConfig(config);
 
-    // Load converter configuration
-    m_converter.setCharTime(getSimulation().getTimeStep());
-    m_converter.loadConfig(config);
-
-    // Obsolete grid
-    auto gridSize = config.get<Lattice::Size>("grid", Lattice::Size{Zero});
-
-    if (gridSize != Zero)
+    // Units converter
     {
-        Log::warning("[streamlines] Config option 'grid' is obsolete!");
+        // Viscosity
+        m_converter.setKinematicViscosity(config.get("kinematic-viscosity", m_converter.getKinematicViscosity()));
 
-        // Grid size
-        m_lattice.setSize(gridSize);
+        if (m_converter.getKinematicViscosity() == Zero)
+            throw config::Exception("Kinematic viscosity ('kinematic-viscosity') cannot be zero");
 
-        // Compute characteristic length
-        m_converter.setNumberNodes(
-            gridSize.getWidth() / getSimulation().getWorldSize().getWidth() * m_converter.getCharLength()
-        );
+        // Characteristic length & time
+        m_converter.setCharLength(config.get("char-length", m_converter.getCharLength()));
+        m_converter.setNumberNodes(config.get("number-nodes", m_converter.getNumberNodes()));
+
+        // Set number of time steps
+        m_converter.setCharTime(getSimulation().getTimeStep());
+        m_converter.setNumberSteps(getInnerIterations());
+
+        // Set fluid density
+        m_converter.setCharDensity(config.get("density", m_converter.getCharDensity()));
     }
-    else
-    {
-        // Calculate lattice size
-        const auto size = Lattice::Size(
-            getSimulation().getWorldSize() / m_converter.getCharLength() * m_converter.getNumberNodes()
-        );
-
-        if (size == Zero)
-            throw InvalidArgumentException("Lattice size cannot be zero");
-
-        // Grid size
-        m_lattice.setSize(size + Lattice::Size(1, 1));
-    }
-
-    // Allocate moving obstacle map
-    m_movingObstacleMap.resize(m_lattice.getSize());
 
     // Enable dynamic object obstacles
     setDynamicObjectsObstacles(config.get("dynamic-object-obstacles", isDynamicObjectsObstacles()));
@@ -325,9 +362,12 @@ void Module::loadConfig(const config::Configuration& config)
     m_circleObstacleScale = config.get("dynamic-object-circle-scale", m_circleObstacleScale);
 
 #ifdef CECE_RENDER
-    m_visualizationLayerDynamicsType = config.get("layer-dynamics", m_visualizationLayerDynamicsType);
-    m_visualizationLayerMagnitude = config.get("layer-magnitude", m_visualizationLayerMagnitude);
-    m_visualizationLayerDensity = config.get("layer-density", m_visualizationLayerDensity);
+    // Visualization
+    {
+        m_visualizationLayerDynamicsType = config.get("layer-dynamics", m_visualizationLayerDynamicsType);
+        m_visualizationLayerMagnitude = config.get("layer-magnitude", m_visualizationLayerMagnitude);
+        m_visualizationLayerDensity = config.get("layer-density", m_visualizationLayerDensity);
+    }
 #endif
 
     // Maximal force
@@ -353,13 +393,7 @@ void Module::storeConfig(config::Configuration& config) const
 {
     module::Module::storeConfig(config);
 
-    config.set("init-iterations", getInitIterations());
-    config.set("inner-iterations", getInnerIterations());
-
-    // Store converter config
-    m_converter.storeConfig(config);
-
-    // TODO: init file
+    // TODO: implement
 }
 
 /* ************************************************************************ */
@@ -367,7 +401,7 @@ void Module::storeConfig(config::Configuration& config) const
 #ifdef CECE_RENDER
 void Module::draw(const simulator::Visualization& visualization, render::Context& context)
 {
-    const auto size = m_lattice.getSize();
+    const auto size = m_lattice->getSize();
     const bool drawDynamicsType = visualization.isEnabled(m_visualizationLayerDynamicsType);
     const bool drawMagnitude = visualization.isEnabled(m_visualizationLayerMagnitude);
     const bool drawDensity = visualization.isEnabled(m_visualizationLayerDensity);
@@ -414,7 +448,7 @@ void Module::draw(const simulator::Visualization& visualization, render::Context
 #ifdef CECE_RENDER
 void Module::drawStoreState(const simulator::Visualization& visualization)
 {
-    const auto size = m_lattice.getSize();
+    const auto size = m_lattice->getSize();
     const bool drawDynamicsType = visualization.isEnabled(m_visualizationLayerDynamicsType);
     const bool drawMagnitude = visualization.isEnabled(m_visualizationLayerMagnitude);
     const bool drawDensity = visualization.isEnabled(m_visualizationLayerDensity);
@@ -436,13 +470,10 @@ void Module::drawStoreState(const simulator::Visualization& visualization)
 
     for (auto&& c : range(size))
     {
-        const auto& node = m_lattice[c];
-        const auto dynamics = node.getDynamics();
-
-        if (dynamics == getFluidDynamics())
+        if (m_lattice->isFluidDynamics(c))
         {
-            const auto velocity = node.computeVelocity();
-            const auto density = node.computeDensity();
+            const auto velocity = m_lattice->getVelocity(c);
+            const auto density = m_lattice->getDensity(c);
 
             maxVel = std::max(maxVel, velocity.getLength());
             rhoMin = std::min(density, rhoMin);
@@ -454,29 +485,28 @@ void Module::drawStoreState(const simulator::Visualization& visualization)
     for (auto&& c : range(size))
     {
         // Cell alias
-        const auto& node = m_lattice[c];
-        const auto velocity = node.computeVelocity();
-        const auto density = node.computeDensity();
-        const auto dynamics = node.getDynamics();
+        const auto velocity = m_lattice->getVelocity(c);
+        const auto density = m_lattice->getDensity(c);
+        const auto dynamics = m_lattice->getDynamics(c);
 
         // Store dynamics type
         if (drawDynamicsType)
         {
             render::Color color;
 
-            if (dynamics == getFluidDynamics())
+            if (dynamics == Dynamics::Fluid)
             {
                 color = render::colors::BLACK;
             }
-            else if (m_boundaries.isBoundaryDynamics(dynamics, Boundary::Type::Inlet))
+            else if (dynamics == Dynamics::Inlet)
             {
                 color = render::colors::RED;
             }
-            else if (m_boundaries.isBoundaryDynamics(dynamics, Boundary::Type::Outlet))
+            else if (dynamics == Dynamics::Outlet)
             {
                 color = render::colors::BLUE;
             }
-            else if (dynamics == NoDynamics::getInstance())
+            else if (dynamics == Dynamics::None)
             {
                 color = render::colors::WHITE;
             }
@@ -491,7 +521,7 @@ void Module::drawStoreState(const simulator::Visualization& visualization)
 
         if (drawMagnitude)
         {
-            if (dynamics == getFluidDynamics())
+            if (dynamics == Dynamics::Fluid)
             {
                 state.imageMagnitude.set(
                     c,
@@ -509,7 +539,7 @@ void Module::drawStoreState(const simulator::Visualization& visualization)
 
         if (drawDensity)
         {
-            if (dynamics == getFluidDynamics())
+            if (dynamics == Dynamics::Fluid)
             {
                 state.imageDensity.set(
                     c,
@@ -539,57 +569,16 @@ void Module::drawSwapState()
 
 /* ************************************************************************ */
 
-UniquePtr<Dynamics> Module::createFluidDynamics() const
+void Module::updateDynamics()
 {
-    return makeUnique<BgkDynamics>(m_converter.calculateOmega());
-}
+    CECE_ASSERT(m_lattice);
 
-/* ************************************************************************ */
+    // Set whole scene as fluid
+    for (auto&& c : range(m_lattice->getSize()))
+        m_lattice->setFluidDynamics(c);
 
-UniquePtr<Dynamics> Module::createWallDynamics() const
-{
-    return makeUnique<BounceBackDynamics>();
-}
-
-/* ************************************************************************ */
-
-UniquePtr<Dynamics> Module::createBorderDynamics(Boundary::Position pos) const
-{
-    const auto omega = m_converter.calculateOmega();
-
-    switch (pos)
-    {
-    case Boundary::Position::Top:
-        return makeUnique<ZouHeDynamics>(omega, ZouHeDynamics::Position::Top);
-
-    case Boundary::Position::Bottom:
-        return makeUnique<ZouHeDynamics>(omega, ZouHeDynamics::Position::Bottom);
-
-    case Boundary::Position::Left:
-        return makeUnique<ZouHeDynamics>(omega, ZouHeDynamics::Position::Left);
-
-    case Boundary::Position::Right:
-        return makeUnique<ZouHeDynamics>(omega, ZouHeDynamics::Position::Right);
-
-    default:
-        throw InvalidArgumentException("Unknown boundary type");
-    }
-
-    return nullptr;
-}
-
-/* ************************************************************************ */
-
-void Module::updateObstacleMap()
-{
-    // Clear previous flag
-    m_lattice.setDynamics(getFluidDynamics());
-
-    const units::PositionVector start = getSimulation().getWorldSize() * -0.5f;
-    const auto step = getSimulation().getWorldSize() / m_lattice.getSize();
-
-    // Clear pool
-    MovingDynamics::poolClear();
+    const units::PositionVector start = getSimulation().getWorldSize() * -0.5;
+    const auto step = getSimulation().getWorldSize() / m_lattice->getSize();
 
     Grid<char> movingObstacleMap;
     movingObstacleMap.resize(m_movingObstacleMap.getSize());
@@ -630,20 +619,20 @@ void Module::updateObstacleMap()
 
             mapShapeToGrid(
                 [&, this] (Coordinate&& coord) {
-                    Assert(m_lattice.inRange(coord));
+                    CECE_ASSERT(inLatticeRange(coord));
                     if (isDynamic && this->isDynamic())
                     {
-                        m_lattice[coord].setDynamics(MovingDynamics::poolCreate(velocity));
+                        m_lattice->setObjectDynamics(coord, velocity);
                         movingObstacleMap[coord] = true;
                         m_movingObstacleMap[coord] = false;
                     }
                     else
                     {
-                        m_lattice[coord].setDynamics(getWallDynamics());
+                        m_lattice->setWallDynamics(coord);
                     }
                 },
                 [] (Coordinate&& coord) {},
-                shp, step, center, obj->getRotation(), m_lattice.getSize()
+                shp, step, center, obj->getRotation(), m_lattice->getSize()
             );
         }
     }
@@ -655,7 +644,7 @@ void Module::updateObstacleMap()
         std::swap(m_movingObstacleMap, movingObstacleMap);
 
         // Nodes with 'true' in movingObstacleMap have changed from obstacle to fluid
-        for (const auto& c : range(m_lattice.getSize()))
+        for (const auto& c : range(m_lattice->getSize()))
         {
             if (!movingObstacleMap[c])
                 continue;
@@ -673,32 +662,32 @@ void Module::updateObstacleMap()
 
             for (const auto c2 : cs)
             {
-                if (!m_lattice.inRange(c2))
+                if (!m_lattice->inRange(c2))
                     continue;
 
-                if (m_lattice[c2].getDynamics() != getFluidDynamics())
+                if (!m_lattice->isFluidDynamics(c2))
                     continue;
 
                 ++count;
-                density += m_lattice[c2].computeDensity();
-                velocity += m_lattice[c2].computeVelocity();
+                density += m_lattice->getDensity(c2);
+                velocity += m_lattice->getVelocity(c2);
             }
 
             if (count)
             {
-                m_lattice[c].initEquilibrium(velocity / count, density / count);
+                m_lattice->setVelocityDensity(c, velocity / count, density / count);
             }
             else
             {
-                m_lattice[c].initEquilibrium();
+                m_lattice->setVelocityDensity(c, Zero, Descriptor::DEFAULT_DENSITY);
             }
         }
     }
 
-    m_lattice.fixupObstacles(getWallDynamics());
+    removeUnreachableDynamics(Dynamics::Wall);
 
     // Update boundaries blocks
-    m_boundaries.updateBlocks(m_lattice, m_converter, getFluidDynamics());
+    updateBoundaries();
 
     //if (isDynamicObjectsObstacles())
     //    m_lattice.fixupObstacles(Node::Dynamics::DynamicObstacle);
@@ -706,27 +695,41 @@ void Module::updateObstacleMap()
 
 /* ************************************************************************ */
 
-void Module::applyToObjects()
+void Module::updateObjects()
 {
     // Foreach objects
     for (auto& obj : getSimulation().getObjects())
-        applyToObject(*obj);
+        updateObject(*obj);
 }
 
 /* ************************************************************************ */
 
-void Module::applyToObject(object::Object& object)
+void Module::updateObject(object::Object& object)
 {
     // Ignore static objects
     if (object.getType() != object::Object::Type::Dynamic)
         return;
 
+    if (isDynamicObjectsObstacles() && isDynamic())
+    {
+        updateObjectDynamic(object);
+    }
+    else
+    {
+        updateObjectStatic(object);
+    }
+}
+
+/* ************************************************************************ */
+
+void Module::updateObjectStatic(object::Object& object)
+{
     // Maximum object speed that is allowed by physical engine
     const auto maxSpeed = getSimulation().getMaxObjectTranslation() / getSimulation().getTimeStep();
     const auto maxSpeedSq = maxSpeed * maxSpeed;
 
-    const units::PositionVector start = getSimulation().getWorldSize() * -0.5f;
-    const auto step = getSimulation().getWorldSize() / m_lattice.getSize();
+    const units::PositionVector start = getSimulation().getWorldSize() * -0.5;
+    const auto step = getSimulation().getWorldSize() / m_lattice->getSize();
 
     // Get mass local center
     const auto center = object.getMassCenterOffset();
@@ -734,280 +737,497 @@ void Module::applyToObject(object::Object& object)
     // Coefficient used in force calculation
     const auto forceCoefficient = 6 * constants::PI * m_converter.getKinematicViscosity() * object.getDensity();
 
-    if (isDynamicObjectsObstacles() && isDynamic())
+    auto force = units::ForceVector{Zero};
+    auto velocityObjEnv = units::VelocityVector{Zero};
+
+    // Map shapes border to grid
+    for (const auto& shape : object.getShapes())
     {
-        auto force = units::ForceVector{Zero};
+        // Only circle shapes are supported
+        if (shape.getType() != ShapeType::Circle)
+            continue;
 
-        // Map shapes border to grid
-        for (const auto& shape : object.getShapes())
+        // Shape alias
+        const auto& circle = shape.getCircle();
+
+        // Transform from [-size / 2, size / 2] to [0, size] space
+        const auto pos = object.getWorldPosition(circle.center) - start;
+
+        // Check if position is in range
+        if (!pos.inRange(Zero, getSimulation().getWorldSize()))
+            continue;
+
+        // Get coordinate to lattice
+        const auto coord = Coordinate(pos / step);
+
+        Vector<RealType> velocityLB = Zero;
+        unsigned long count = 0;
+
+        // Store velocity for each coordinate
+        mapShapeBorderToGrid(
+            [this, &velocityLB, &count] (Coordinate&& coord) {
+                velocityLB += m_lattice->getVelocity(coord);
+                ++count;
+            },
+            [] (Coordinate&& coord) { },
+            shape, step, coord, m_lattice->getSize(), {}, 1
+        );
+
+        if (count == 0)
+            continue;
+
+        // Average
+        velocityLB /= count;
+        const units::VelocityVector velocityEnv = m_converter.convertVelocity(velocityLB);
+        //const VelocityVector velocityEnv{m_inletVelocities[0], Zero};
+
+        if (velocityEnv.getLengthSquared() > maxSpeedSq)
         {
-            // Only circle shapes are supported
-            if (shape.getType() != ShapeType::Circle)
-                continue;
+            OutStringStream oss;
+            oss <<
+                "[streamlines] Physical engine can't handle environment "
+                "velocity (" << velocityEnv.getLength() << " um/s < " << maxSpeed << " um/s). "
+                "Decrease inlet velocities or change topology."
+            ;
 
-            // Shape alias
-            const auto& circle = shape.getCircle();
-
-            // Transform from [-size / 2, size / 2] to [0, size] space
-            const auto pos = object.getWorldPosition(circle.center) - start;
-
-            // Check if position is in range
-            if (!pos.inRange(Zero, getSimulation().getWorldSize()))
-                continue;
-
-            // Get coordinate to lattice
-            const auto c = Coordinate(pos / step);
-
-            Vector<RealType> forceLB = Zero;
-
-            // Force function
-            auto forceEval = [this, &forceLB] (Coordinate&& coord) {
-
-                // Get node
-                const auto& node = m_lattice[coord];
-
-                Vector<RealType> force = Zero;
-
-                // Foreach all directions
-                for (Descriptor::DirectionType iPop = 1; iPop < Descriptor::SIZE; ++iPop)
-                {
-                    const auto iOpp = Descriptor::DIRECTION_OPPOSITES[iPop];
-                    const auto ei = Descriptor::DIRECTION_VELOCITIES[iOpp];
-
-                    // Neighbour coordinate & node
-                    const auto nc = coord + Coordinate(ei);
-
-                    // Skip
-                    if (!m_lattice.inRange(nc))
-                        continue;
-
-                    const auto& nn = m_lattice[nc];
-
-                    // Not fluid dynamics
-                    if (nn.getDynamics() != getFluidDynamics())
-                        continue;
-
-                    force += -ei * (nn[iOpp] + nn[iPop]);
-                }
-
-                forceLB += force;
-            };
-
-            auto shp = shape;
-
-            if (shp.getType() == ShapeType::Circle)
-                shp.getCircle().radius *= m_circleObstacleScale;
-
-            // Store force for each coordinate
-            mapShapeToGrid(
-                forceEval,
-                [] (Coordinate&& coord) { },
-                shp, step, c, object.getRotation(), m_lattice.getSize()
-            );
-
-            // No force
-            if (forceLB == Zero)
-                continue;
-
-            // Shape force
-            const auto forceShape = m_converter.convertForce(forceLB);
-
-            // Add force from shape
-            force += forceShape;
+            Log::warning(oss.str());
+            //throw RuntimeException(oss.str());
         }
 
-        // Force coefficient
-        // Converter uses calculated number of steps but the simulation works with inner iterations.
-        const auto coeff =
-            (static_cast<RealType>(getInnerIterations()) * static_cast<RealType>(getInnerIterations())) /
-            (static_cast<RealType>(m_converter.getNumberSteps()) * static_cast<RealType>(m_converter.getNumberSteps()))
-        ;
+        velocityObjEnv += velocityEnv;
 
-        force *= coeff;
+        // Shape radius
+        const auto radius = circle.radius;
+        // Distance from mass center
+        const auto offset = circle.center - center;
 
-        //Log::info("Force: (", force.getX(), ", ", force.getY(), ")");
+        // Angular velocity
+        const auto omega = object.getAngularVelocity();
 
-        // Limit force
-        if (force.getLengthSquared() > m_maxForce.getLengthSquared())
-        {
-            const RealType ratio = m_maxForce.getLength() / force.getLength();
-            force *= ratio;
-        }
+        // Calculate shape global velocity
+        const auto velocity = object.getVelocity() + cross(omega, offset);
 
-        // Calculate linear impulse from shapes
-        const auto impulse = force * getSimulation().getTimeStep();
-
-        // Apply impulse
-        object.applyLinearImpulse(impulse);
-    }
-    else
-    {
-        auto force = units::ForceVector{Zero};
-        auto velocityObjEnv = units::VelocityVector{Zero};
-
-        // Map shapes border to grid
-        for (const auto& shape : object.getShapes())
-        {
-            // Only circle shapes are supported
-            if (shape.getType() != ShapeType::Circle)
-                continue;
-
-            // Shape alias
-            const auto& circle = shape.getCircle();
-
-            // Transform from [-size / 2, size / 2] to [0, size] space
-            const auto pos = object.getWorldPosition(circle.center) - start;
-
-            // Check if position is in range
-            if (!pos.inRange(Zero, getSimulation().getWorldSize()))
-                continue;
-
-            // Get coordinate to lattice
-            const auto coord = Coordinate(pos / step);
-
-            Vector<RealType> velocityLB = Zero;
-            unsigned long count = 0;
-
-            // Store velocity for each coordinate
-            mapShapeBorderToGrid(
-                [this, &velocityLB, &count] (Coordinate&& coord) {
-                    velocityLB += m_lattice[coord].computeVelocity();
-                    ++count;
-                },
-                [] (Coordinate&& coord) { },
-                shape, step, coord, m_lattice.getSize(), {}, 1
-            );
-
-            if (count == 0)
-                continue;
-
-            // Average
-            velocityLB /= count;
-            const units::VelocityVector velocityEnv = m_converter.convertVelocity(velocityLB);
-            //const VelocityVector velocityEnv{m_inletVelocities[0], Zero};
-
-            if (velocityEnv.getLengthSquared() > maxSpeedSq)
-            {
-                OutStringStream oss;
-                oss <<
-                    "[streamlines] Physical engine can't handle environment "
-                    "velocity (" << velocityEnv.getLength() << " um/s < " << maxSpeed << " um/s). "
-                    "Decrease inlet velocities or change topology."
-                ;
-
-                Log::warning(oss.str());
-                //throw RuntimeException(oss.str());
-            }
-
-            velocityObjEnv += velocityEnv;
-
-            // Shape radius
-            const auto radius = circle.radius;
-            // Distance from mass center
-            const auto offset = circle.center - center;
-
-            // Angular velocity
-            const auto omega = object.getAngularVelocity();
-
-            // Calculate shape global velocity
-            const auto velocity = object.getVelocity() + cross(omega, offset);
-
-            // Difference between environment velocity and shape velocity
-            const auto dv = velocityEnv - velocity;
-
-            // Same velocity
-            if (dv == Zero)
-                continue;
-
-            // Add force from shape
-            force += forceCoefficient * radius * dv;
-        }
-
-        Assert(object.getShapes().size() > 0);
-        velocityObjEnv /= object.getShapes().size();
-
-        // Difference between velocities
-        const auto dv = velocityObjEnv - object.getVelocity();
+        // Difference between environment velocity and shape velocity
+        const auto dv = velocityEnv - velocity;
 
         // Same velocity
         if (dv == Zero)
-            return;
+            continue;
 
-        // Maximum impulse
-        const auto impulseMax = object.getMass() * dv;
+        // Add force from shape
+        force += forceCoefficient * radius * dv;
+    }
 
-        // Calculate linear impulse from shapes
-        auto impulse = force * getSimulation().getTimeStep();
+    Assert(object.getShapes().size() > 0);
+    velocityObjEnv /= object.getShapes().size();
 
-        // Impulse is to big
-        if (impulse.getLengthSquared() > impulseMax.getLengthSquared())
+    // Difference between velocities
+    const auto dv = velocityObjEnv - object.getVelocity();
+
+    // Same velocity
+    if (dv == Zero)
+        return;
+
+    // Maximum impulse
+    const auto impulseMax = object.getMass() * dv;
+
+    // Calculate linear impulse from shapes
+    auto impulse = force * getSimulation().getTimeStep();
+
+    // Impulse is to big
+    if (impulse.getLengthSquared() > impulseMax.getLengthSquared())
+    {
+        const RealType ratio = impulseMax.getLength() / impulse.getLength();
+        impulse *= ratio;
+    }
+
+    // Apply impulse
+    object.applyLinearImpulse(impulse);
+}
+
+/* ************************************************************************ */
+
+void Module::updateObjectDynamic(object::Object& object)
+{
+    // Maximum object speed that is allowed by physical engine
+    const auto maxSpeed = getSimulation().getMaxObjectTranslation() / getSimulation().getTimeStep();
+    const auto maxSpeedSq = maxSpeed * maxSpeed;
+
+    const units::PositionVector start = getSimulation().getWorldSize() * -0.5f;
+    const auto step = getSimulation().getWorldSize() / m_lattice->getSize();
+
+    // Get mass local center
+    const auto center = object.getMassCenterOffset();
+
+    // Coefficient used in force calculation
+    const auto forceCoefficient = 6 * constants::PI * m_converter.getKinematicViscosity() * object.getDensity();
+
+    auto force = units::ForceVector{Zero};
+
+    // Map shapes border to grid
+    for (const auto& shape : object.getShapes())
+    {
+        // Only circle shapes are supported
+        if (shape.getType() != ShapeType::Circle)
+            continue;
+
+        // Shape alias
+        const auto& circle = shape.getCircle();
+
+        // Transform from [-size / 2, size / 2] to [0, size] space
+        const auto pos = object.getWorldPosition(circle.center) - start;
+
+        // Check if position is in range
+        if (!pos.inRange(Zero, getSimulation().getWorldSize()))
+            continue;
+
+        // Get coordinate to lattice
+        const auto c = Coordinate(pos / step);
+
+        Vector<RealType> forceLB = Zero;
+
+        // Force function
+        auto forceEval = [this, &forceLB] (Coordinate&& coord) {
+
+            Vector<RealType> force = Zero;
+
+            // Foreach all directions
+            for (Descriptor::PopIndexType iPop = 1; iPop < Descriptor::SIZE; ++iPop)
+            {
+                const auto iOpp = Descriptor::DIRECTION_OPPOSITES[iPop];
+                const auto ei = Descriptor::DIRECTION_VELOCITIES[iOpp];
+
+                // Neighbour coordinate & node
+                const auto nc = coord + Coordinate(ei);
+
+                // Skip
+                if (!m_lattice->inRange(nc))
+                    continue;
+
+                // Not fluid dynamics
+                if (!m_lattice->isFluidDynamics(nc))
+                    continue;
+
+                // Get distribution functions
+                auto nn = m_lattice->getDistributions(nc);
+
+                force += -ei * (nn[iOpp] + nn[iPop]);
+            }
+
+            forceLB += force;
+        };
+
+        auto shp = shape;
+
+        if (shp.getType() == ShapeType::Circle)
+            shp.getCircle().radius *= m_circleObstacleScale;
+
+        // Store force for each coordinate
+        mapShapeToGrid(
+            forceEval,
+            [] (Coordinate&& coord) { },
+            shp, step, c, object.getRotation(), m_lattice->getSize()
+        );
+
+        // No force
+        if (forceLB == Zero)
+            continue;
+
+        // Shape force
+        const auto forceShape = m_converter.convertForce(forceLB);
+
+        // Add force from shape
+        force += forceShape;
+    }
+
+    // Force coefficient
+    // Converter uses calculated number of steps but the simulation works with inner iterations.
+    const auto coeff =
+        (static_cast<RealType>(getInnerIterations()) * static_cast<RealType>(getInnerIterations())) /
+        (static_cast<RealType>(m_converter.getNumberSteps()) * static_cast<RealType>(m_converter.getNumberSteps()))
+    ;
+
+    force *= coeff;
+
+    //Log::info("Force: (", force.getX(), ", ", force.getY(), ")");
+
+    // Limit force
+    if (force.getLengthSquared() > m_maxForce.getLengthSquared())
+    {
+        const RealType ratio = m_maxForce.getLength() / force.getLength();
+        force *= ratio;
+    }
+
+    // Calculate linear impulse from shapes
+    const auto impulse = force * getSimulation().getTimeStep();
+
+    // Apply impulse
+    object.applyLinearImpulse(impulse);
+}
+
+/* ************************************************************************ */
+
+void Module::removeUnreachableDynamics(Dynamics dynamics)
+{
+    using Offset = Vector<typename std::make_signed<Descriptor::PopIndexType>::type>;
+
+    static const StaticArray<Offset, 9> OFFSETS{{
+        Offset{ 0,  0},
+        Offset{ 1,  0}, Offset{-1,  0}, Offset{ 0,  1}, Offset{ 1,  1},
+        Offset{-1,  1}, Offset{ 0, -1}, Offset{ 1, -1}, Offset{-1, -1}
+    }};
+
+    // Foreach all cells
+    for (auto&& c : range(m_lattice->getSize()))
+    {
+        if (m_lattice->getDynamics(c) != dynamics)
+            continue;
+
+        bool test = true;
+
+        for (std::size_t i = 0; i < OFFSETS.size(); ++i)
         {
-            const RealType ratio = impulseMax.getLength() / impulse.getLength();
-            impulse *= ratio;
+            // TODO: simplify
+            Dynamics type = Dynamics::None;
+
+            if (m_lattice->inRange(c + OFFSETS[i]))
+                type = m_lattice->getDynamics(c + OFFSETS[i]);
+
+            test = test && (
+                type == Dynamics::None ||
+                type == dynamics
+            );
         }
 
-        // Apply impulse
-        object.applyLinearImpulse(impulse);
+        if (test)
+            m_lattice->setNoneDynamics(c);
     }
 }
 
 /* ************************************************************************ */
 
-void Module::applyBoundaryConditions()
+void Module::updateBoundaries()
 {
-    m_boundaries.applyConditions(m_lattice, m_converter, getFluidDynamics());
+    for (const auto& boundary : m_boundaries)
+        updateBoundary(boundary);
 }
 
 /* ************************************************************************ */
 
-void Module::printInfo()
+void Module::updateBoundary(const Boundary& boundary)
 {
-    // Get values
-    const auto size = m_lattice.getSize();
+    // No boundary
+    if (boundary.getType() == Boundary::Type::None)
+        return;
 
-    Log::info("[streamlines] Viscosity: ", m_converter.getKinematicViscosity(), " um2/s");
-    Log::info("[streamlines] Max object speed: ", getSimulation().getMaxObjectTranslation(), " um/it");
-    Log::info("[streamlines] Char. length: ", m_converter.getCharLength(), " um");
-    Log::info("[streamlines] Char. time: ", m_converter.getCharTime(), " s");
-    Log::info("[streamlines] Char. speed: ", m_converter.getCharVelocity(), " um/s");
-    Log::info("[streamlines] Number of nodes: ", m_converter.getNumberNodes());
-    Log::info("[streamlines] Number of time steps: ", m_converter.getNumberSteps());
-    Log::info("[streamlines] Re: ", m_converter.calculateRe());
-    Log::info("[streamlines] ## Lattice ##");
-    Log::info("[streamlines] Tau: ", m_converter.calculateTau());
-    Log::info("[streamlines] Omega: ", m_converter.calculateOmega());
-    Log::info("[streamlines] Grid: (", size.getWidth(), "; ", size.getHeight(), ")");
-    Log::info("[streamlines] Viscosity: ", m_converter.calculateViscosity());
+    const auto gridSize = m_lattice->getSize();
+    const auto offset = m_converter.convertLength(boundary.getOffset());
+    const auto size = m_converter.convertLength(boundary.getSize());
+
+    auto inletFlowVelocity = [&] (RealType width) -> units::Velocity {
+        const auto len = m_converter.convertLength(width);
+        const auto area = len * units::Length(1);
+        return boundary.getInletFlow() / area;
+    };
+
+    // Calculate inlet velocity
+    auto inletVelocity = [&] (Lattice::CoordinateType coord, int width) -> units::VelocityVector
+    {
+        auto type = boundary.getInletProfileType();
+
+        if (type == Boundary::InletProfileType::Auto)
+            type = Boundary::InletProfileType::Constant;
+
+        if (type == Boundary::InletProfileType::Constant)
+        {
+            // Calculate velocity
+            const units::Velocity velocity = boundary.getInletFlow() != Zero
+                ? inletFlowVelocity(width)
+                : boundary.getInletVelocity()
+            ;
+
+            switch (boundary.getPosition())
+            {
+            case Boundary::Position::Top:
+                return {Zero, -velocity};
+
+            case Boundary::Position::Bottom:
+                return {Zero, velocity};
+
+            case Boundary::Position::Left:
+                return {velocity, Zero};
+
+            case Boundary::Position::Right:
+                return {-velocity, Zero};
+
+            default:
+                Assert(false && "Invalid boundary position");
+                std::abort();
+            }
+        }
+
+        return Zero;
+    };
+
+    // Boundary set function
+    auto setFnInlet = [&] (Lattice::CoordinateType c, int width) {
+        const auto iu = inletVelocity(c, width);
+        const auto u = m_converter.convertVelocity(iu);
+        m_lattice->setInletDynamics(c, u);
+    };
+
+    // Boundary set function
+    auto setFnOutlet = [&] (Lattice::CoordinateType c, int width) {
+        m_lattice->setOutletDynamics(c, 1.0);
+    };
+
+
+    switch (boundary.getPosition())
+    {
+    case Boundary::Position::Top:
+    {
+        // Boundary block
+        const auto block = getBoundaryBlock(offset, size, gridSize.getWidth());
+
+        auto coordFn = [&](int i) {
+            return Lattice::CoordinateType(i, gridSize.getHeight() - 1);
+        };
+
+        // Top edge
+        const auto blocks = detectBoundaryBlocks(*m_lattice, block, coordFn);
+
+        switch (boundary.getType())
+        {
+        case Boundary::Type::Inlet:
+            setBoundaryBlocks(*m_lattice, blocks, coordFn, setFnInlet);
+            break;
+
+        case Boundary::Type::Outlet:
+            setBoundaryBlocks(*m_lattice, blocks, coordFn, setFnOutlet);
+            break;
+
+        case Boundary::Type::None:
+            break;
+        }
+
+        break;
+    }
+
+    case Boundary::Position::Bottom:
+    {
+        // Boundary block
+        const auto block = getBoundaryBlock(offset, size, gridSize.getWidth());
+
+        auto coordFn = [&](int i) {
+            return Lattice::CoordinateType(i, 0);
+        };
+
+        // Bottom edge
+        const auto blocks = detectBoundaryBlocks(*m_lattice, block, coordFn);
+
+        switch (boundary.getType())
+        {
+        case Boundary::Type::Inlet:
+            setBoundaryBlocks(*m_lattice, blocks, coordFn, setFnInlet);
+            break;
+
+        case Boundary::Type::Outlet:
+            setBoundaryBlocks(*m_lattice, blocks, coordFn, setFnOutlet);
+            break;
+
+        case Boundary::Type::None:
+            break;
+        }
+
+        break;
+    }
+
+    case Boundary::Position::Left:
+    {
+        // Boundary block
+        const auto block = getBoundaryBlock(offset, size, gridSize.getHeight());
+
+        auto coordFn = [&](int i) {
+            return Lattice::CoordinateType(0, i);
+        };
+
+        // Left edge
+        const auto blocks = detectBoundaryBlocks(*m_lattice, block, coordFn);
+
+        switch (boundary.getType())
+        {
+        case Boundary::Type::Inlet:
+            setBoundaryBlocks(*m_lattice, blocks, coordFn, setFnInlet);
+            break;
+
+        case Boundary::Type::Outlet:
+            setBoundaryBlocks(*m_lattice, blocks, coordFn, setFnOutlet);
+            break;
+
+        case Boundary::Type::None:
+            break;
+        }
+
+        break;
+    }
+
+    case Boundary::Position::Right:
+    {
+        // Boundary block
+        const auto block = getBoundaryBlock(offset, size, gridSize.getHeight());
+
+        auto coordFn = [&](int i) {
+            return Lattice::CoordinateType(gridSize.getWidth() - 1, i);
+        };
+
+        // Right edge
+        const auto blocks = detectBoundaryBlocks(*m_lattice, block, coordFn);
+
+        switch (boundary.getType())
+        {
+        case Boundary::Type::Inlet:
+            setBoundaryBlocks(*m_lattice, blocks, coordFn, setFnInlet);
+            break;
+
+        case Boundary::Type::Outlet:
+            setBoundaryBlocks(*m_lattice, blocks, coordFn, setFnOutlet);
+            break;
+
+        case Boundary::Type::None:
+            break;
+        }
+
+        break;
+    }
+    }
 }
 
 /* ************************************************************************ */
 
 void Module::storeToFile(const FilePath& filename)
 {
-    OutFileStream ofs(filename.string(), OutFileStream::binary);
+    OutFileStream ofs(filename.toString(), OutFileStream::binary);
     BinaryOutput out(ofs);
 
     // Write file guard
     out.write(FILE_GUARD);
 
     // Write lattice size
-    out.write(m_lattice.getSize());
+    out.write(m_lattice->getSize());
 
     // Store lattice hash
     out.write(calculateLatticeHash());
 
     // Write relaxation time
-    out.write(m_converter.calculateTau());
+    out.write(m_converter.getTau());
 
     // Number of init iterations
     out.write(m_initIterations);
 
-    for (auto&& c : range(m_lattice.getSize()))
+    for (auto&& c : range(m_lattice->getSize()))
     {
-        const Node& cell = m_lattice[c];
-
         // Write cell populations
-        out.write(cell.getData());
+        out.write(m_lattice->getDistributions(c));
     }
 }
 
@@ -1015,7 +1235,7 @@ void Module::storeToFile(const FilePath& filename)
 
 void Module::loadFromFile(const FilePath& filename)
 {
-    InFileStream ifs(filename.string(), OutFileStream::binary);
+    InFileStream ifs(filename.toString(), OutFileStream::binary);
 
     if (!ifs.is_open())
         throw InvalidArgumentException("Cannot load from file: File not found '" + filename.string() + "'");
@@ -1030,10 +1250,10 @@ void Module::loadFromFile(const FilePath& filename)
         throw InvalidArgumentException("Cannot load from file: File is not valid");
 
     // Read lattice size
-    Lattice::Size size;
+    Lattice::SizeType size;
     in.read(size);
 
-    if (size != m_lattice.getSize())
+    if (size != m_lattice->getSize())
         throw InvalidArgumentException("Cannot load from file: different lattice sizes");
 
     std::size_t hash;
@@ -1045,7 +1265,7 @@ void Module::loadFromFile(const FilePath& filename)
     RealType tau;
     in.read(tau);
 
-    if (tau != m_converter.calculateTau())
+    if (tau != m_converter.getTau())
         throw InvalidArgumentException("Cannot load from file: different relaxation times");
 
     decltype(m_initIterations) iterations;
@@ -1054,12 +1274,16 @@ void Module::loadFromFile(const FilePath& filename)
     if (iterations != m_initIterations)
         throw InvalidArgumentException("Cannot load from file: different init iterations");
 
-    for (auto&& c : range(m_lattice.getSize()))
+    // Foreach lattice
+    for (auto&& c : range(m_lattice->getSize()))
     {
-        Node& cell = m_lattice[c];
+        Lattice::DistributionsType df;
 
-        // Read cell populations
-        in.read(cell.getData());
+        // Read node populations
+        in.read(df);
+
+        // Set distribution functions
+        m_lattice->setDistributions(c, df);
     }
 }
 
@@ -1068,27 +1292,14 @@ void Module::loadFromFile(const FilePath& filename)
 std::size_t Module::calculateLatticeHash() const noexcept
 {
     // Based on djb2
-    std::size_t hash = 5381;
-    const auto noDynamics = NoDynamics::getInstance();
-    const auto wallDynamics = getWallDynamics();
-    const auto fluidDynamics = getFluidDynamics();
+    size_t hash = 5381;
 
-    for (auto&& c : range(m_lattice.getSize()))
+    for (auto&& c : range(m_lattice->getSize()))
     {
-        const Node& node = m_lattice[c];
-        const auto dynamics = node.getDynamics();
+        const auto dynamics = m_lattice->getDynamics(c);
 
-        std::size_t val;
-
-        // Get value based on dynamics
-        if (dynamics == noDynamics)
-            val = 1;
-        else if (dynamics == wallDynamics)
-            val = 2;
-        else if (dynamics == fluidDynamics)
-            val = 3;
-        else
-            val = 4;
+        // Get value
+        size_t val = static_cast<size_t>(dynamics);
 
         // Can overflow... don't care
         hash = ((hash << 5) + hash) + val; // hash * 33 + val

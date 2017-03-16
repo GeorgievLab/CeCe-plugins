@@ -1,5 +1,5 @@
 /* ************************************************************************ */
-/* Georgiev Lab (c) 2015-2016                                               */
+/* Georgiev Lab (c) 2015-2017                                               */
 /* ************************************************************************ */
 /* Department of Cybernetics                                                */
 /* Faculty of Applied Sciences                                              */
@@ -32,18 +32,12 @@
 #include "cece/core/VectorUnits.hpp"
 #include "cece/core/ViewPtr.hpp"
 #include "cece/core/String.hpp"
-#include "cece/core/UniquePtr.hpp"
 #include "cece/core/Range.hpp"
 #include "cece/core/DynamicArray.hpp"
-
-// Plugin
-#include "Lattice.hpp"
 
 /* ************************************************************************ */
 
 namespace cece { namespace config { class Configuration; } }
-namespace cece { namespace object { class Object; } }
-namespace cece { namespace simulator { class Simulation; } }
 
 /* ************************************************************************ */
 
@@ -53,13 +47,8 @@ namespace streamlines {
 
 /* ************************************************************************ */
 
-class Dynamics;
-class Converter;
-
-/* ************************************************************************ */
-
 /**
- * @brief Streamlines boundary specification.
+ * @brief      Streamlines boundary specification.
  */
 class Boundary
 {
@@ -69,7 +58,7 @@ public:
 
 
     /**
-     * @brief Boundary type.
+     * @brief      Boundary type.
      */
     enum class Type
     {
@@ -80,7 +69,7 @@ public:
 
 
     /**
-     * @brief Boundary position.
+     * @brief      Boundary position.
      */
     enum class Position
     {
@@ -92,7 +81,7 @@ public:
 
 
     /**
-     * @brief Inlet velocity profile type.
+     * @brief      Inlet velocity profile type.
      */
     enum class InletProfileType
     {
@@ -106,113 +95,67 @@ public:
 
 
     /**
-     * @brief Returns boundary name.
+     * @brief      Returns boundary name.
      *
-     * @return
+     * @return     The name.
      */
-    const String& getName() const noexcept
-    {
-        return m_name;
-    }
+    const String& getName() const noexcept;
 
 
     /**
-     * @brief Returns boundary type.
+     * @brief      Returns boundary type.
      *
-     * @return
+     * @return     The type.
      */
-    Type getType() const noexcept
-    {
-        return m_type;
-    }
+    Type getType() const noexcept;
 
 
     /**
-     * @brief Returns boundary position.
+     * @brief      Returns boundary position.
      *
-     * @return
+     * @return     The position.
      */
-    Position getPosition() const noexcept
-    {
-        return m_position;
-    }
+    Position getPosition() const noexcept;
 
 
     /**
-     * @brief Returns boundary offset.
+     * @brief      Returns boundary offset.
      *
-     * @return
+     * @return     The offset.
      */
-    units::Length getOffset() const noexcept
-    {
-        return m_offset;
-    }
+    units::Length getOffset() const noexcept;
 
 
     /**
-     * @brief Returns boundary size.
+     * @brief      Returns boundary size.
      *
-     * @return
+     * @return     The size.
      */
-    units::Length getSize() const noexcept
-    {
-        return m_size;
-    }
+    units::Length getSize() const noexcept;
 
 
     /**
-     * @brief Returns boundary type.
+     * @brief      Returns boundary type.
      *
-     * @return
+     * @return     The inlet profile type.
      */
-    InletProfileType getInletProfileType() const noexcept
-    {
-        return m_inletProfileType;
-    }
+    InletProfileType getInletProfileType() const noexcept;
 
 
     /**
-     * @brief Returns inlet velocity.
+     * @brief      Returns inlet velocity.
      *
-     * @return
+     * @return     The inlet velocity.
      */
-    units::Velocity getInletVelocity() const noexcept
-    {
-        return m_inletVelocity;
-    }
+    units::Velocity getInletVelocity() const noexcept;
 
 
     /**
-     * @brief Returns inlet volumeric flow rate.
+     * @brief      Returns inlet volumeric flow rate.
      *
-     * @return
+     * @return     The inlet flow.
      */
-    units::VolumericFlow getInletFlow() const noexcept
-    {
-        return m_inletFlow;
-    }
-
-
-    /**
-     * @brief Returns dynamics.
-     *
-     * @return
-     */
-    ViewPtr<Dynamics> getDynamics() const noexcept
-    {
-        return m_dynamics;
-    }
-
-
-    /**
-     * @brief Returns location blocks.
-     *
-     * @return
-     */
-    const DynamicArray<Range<Lattice::SizeType>>& getBlocks() const noexcept
-    {
-        return m_blocks;
-    }
+    units::VolumericFlow getInletFlow() const noexcept;
 
 
 // Public Mutators
@@ -220,102 +163,67 @@ public:
 
 
     /**
-     * @brief Set boundary name.
+     * @brief      Set boundary name.
      *
-     * @param name
+     * @param      name  The name
      */
-    void setName(String name) noexcept
-    {
-        m_name = std::move(name);
-    }
+    void setName(String name) noexcept;
 
 
     /**
-     * @brief Set boundary type.
+     * @brief      Set boundary type.
      *
-     * @param type
+     * @param      type  The type
      */
-    void setType(Type type) noexcept
-    {
-        m_type = type;
-    }
+    void setType(Type type) noexcept;
 
 
     /**
-     * @brief Set boundary position.
+     * @brief      Set boundary position.
      *
-     * @param position
+     * @param      position  The position
      */
-    void setPosition(Position position) noexcept
-    {
-        m_position = position;
-    }
+    void setPosition(Position position) noexcept;
 
 
     /**
-     * @brief Set boundary offset.
+     * @brief      Set boundary offset.
      *
-     * @param offset
+     * @param      offset  The offset
      */
-    void setOffset(units::Length offset) noexcept
-    {
-        m_offset = offset;
-    }
+    void setOffset(units::Length offset) noexcept;
 
 
     /**
-     * @brief Set boundary size.
+     * @brief      Set boundary size.
      *
-     * @param size
+     * @param      size  The size
      */
-    void setSize(units::Length size) noexcept
-    {
-        m_size = size;
-    }
+    void setSize(units::Length size) noexcept;
 
 
     /**
-     * @brief Set boundary type.
+     * @brief      Set boundary type.
      *
-     * @param type
+     * @param      type  The type
      */
-    void setInletProfileType(InletProfileType type) noexcept
-    {
-        m_inletProfileType = type;
-    }
+    void setInletProfileType(InletProfileType type) noexcept;
 
 
     /**
-     * @brief Set inlet velocity.
+     * @brief      Set inlet velocity.
      *
-     * @param velocity
+     * @param      velocity  The velocity
      */
-    void setInletVelocity(units::Velocity velocity) noexcept
-    {
-        m_inletVelocity = velocity;
-    }
+    void setInletVelocity(units::Velocity velocity) noexcept;
 
 
     /**
-     * @brief Set inlet volumeric flow rate.
+     * @brief      Set inlet volumeric flow rate.
      *
-     * @param flow
+     * @param      flow  The flow
      */
-    void setInletFlow(units::VolumericFlow flow) noexcept
-    {
-        m_inletFlow = flow;
-    }
-
-
-    /**
-     * @brief Set dynamics.
-     *
-     * @param dynamics
-     */
-    void setDynamics(UniquePtr<Dynamics> dynamics) noexcept
-    {
-        m_dynamics = std::move(dynamics);
-    }
+    void setInletFlow(units::VolumericFlow flow) noexcept;
 
 
 // Public Operations
@@ -323,51 +231,19 @@ public:
 
 
     /**
-     * @brief Load module configuration.
+     * @brief      Load module configuration.
      *
-     * @param config Source configuration.
+     * @param      config  Source configuration.
      */
     void loadConfig(const config::Configuration& config);
 
 
     /**
-     * @brief Store module configuration.
+     * @brief      Store module configuration.
      *
-     * @param config Output configuration.
+     * @param      config  Output configuration.
      */
     void storeConfig(config::Configuration& config) const;
-
-
-    /**
-     * @brief Update blocks that will be used as boundary.
-     *
-     * @param lattice
-     * @param converter
-     * @param fluidDynamics
-     */
-    void updateBlocks(Lattice& lattice, Converter& converter, ViewPtr<Dynamics> fluidDynamics);
-
-
-    /**
-     * @brief Apply boundary to lattice.
-     *
-     * @param lattice
-     * @param converter
-     * @param fluidDynamics
-     */
-    void apply(Lattice& lattice, Converter& converter, ViewPtr<Dynamics> fluidDynamics);
-
-
-    /**
-     * @brief Calculate inlet velocity profile.
-     *
-     * @param converter
-     * @param coord
-     * @param width Inlet width.
-     *
-     * @return
-     */
-    units::VelocityVector inletVelocity(Converter& converter, Lattice::CoordinateType coord, Lattice::SizeType width) const noexcept;
 
 
 // Private Data Members
@@ -397,13 +273,133 @@ private:
     /// Inlet volumeric flow rate.
     units::VolumericFlow m_inletFlow = Zero;
 
-    /// Boundary dynamics.
-    UniquePtr<Dynamics> m_dynamics;
-
-    /// Boundary open blocks.
-    DynamicArray<Range<Lattice::SizeType>> m_blocks;
-
 };
+
+/* ************************************************************************ */
+
+}
+}
+}
+
+/* ************************************************************************ */
+/* ************************************************************************ */
+/* ************************************************************************ */
+
+namespace cece {
+namespace plugin {
+namespace streamlines {
+
+/* ************************************************************************ */
+
+inline const String& Boundary::getName() const noexcept
+{
+    return m_name;
+}
+
+/* ************************************************************************ */
+
+inline Boundary::Type Boundary::getType() const noexcept
+{
+    return m_type;
+}
+
+/* ************************************************************************ */
+
+inline Boundary::Position Boundary::getPosition() const noexcept
+{
+    return m_position;
+}
+
+/* ************************************************************************ */
+
+inline units::Length Boundary::getOffset() const noexcept
+{
+    return m_offset;
+}
+
+/* ************************************************************************ */
+
+inline units::Length Boundary::getSize() const noexcept
+{
+    return m_size;
+}
+
+/* ************************************************************************ */
+
+inline Boundary::InletProfileType Boundary::getInletProfileType() const noexcept
+{
+    return m_inletProfileType;
+}
+
+/* ************************************************************************ */
+
+inline units::Velocity Boundary::getInletVelocity() const noexcept
+{
+    return m_inletVelocity;
+}
+
+/* ************************************************************************ */
+
+inline units::VolumericFlow Boundary::getInletFlow() const noexcept
+{
+    return m_inletFlow;
+}
+
+/* ************************************************************************ */
+
+inline void Boundary::setName(String name) noexcept
+{
+    m_name = std::move(name);
+}
+
+/* ************************************************************************ */
+
+inline void Boundary::setType(Type type) noexcept
+{
+    m_type = type;
+}
+
+/* ************************************************************************ */
+
+inline void Boundary::setPosition(Position position) noexcept
+{
+    m_position = position;
+}
+
+/* ************************************************************************ */
+
+inline void Boundary::setOffset(units::Length offset) noexcept
+{
+    m_offset = offset;
+}
+
+/* ************************************************************************ */
+
+inline void Boundary::setSize(units::Length size) noexcept
+{
+    m_size = size;
+}
+
+/* ************************************************************************ */
+
+inline void Boundary::setInletProfileType(InletProfileType type) noexcept
+{
+    m_inletProfileType = type;
+}
+
+/* ************************************************************************ */
+
+inline void Boundary::setInletVelocity(units::Velocity velocity) noexcept
+{
+    m_inletVelocity = velocity;
+}
+
+/* ************************************************************************ */
+
+inline void Boundary::setInletFlow(units::VolumericFlow flow) noexcept
+{
+    m_inletFlow = flow;
+}
 
 /* ************************************************************************ */
 

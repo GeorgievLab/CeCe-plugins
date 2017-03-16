@@ -1,5 +1,5 @@
 # ######################################################################### #
-# Georgiev Lab (c) 2015-2016                                                #
+# Georgiev Lab (c) 2015-2017                                                #
 # ######################################################################### #
 # Department of Cybernetics                                                 #
 # Faculty of Applied Sciences                                               #
@@ -23,17 +23,6 @@
 #                                                                           #
 # ######################################################################### #
 
-# Enable swap trick
-option(CECE_PLUGIN_streamlines_SWAP_TRICK "Enable OpenLB swap trick improvement" On)
-
-# ######################################################################### #
-
-# Create config file
-configure_file(config.hpp.in config.hpp)
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
-# ######################################################################### #
-
 # Build plugin
 build_plugin(streamlines
     EXPORT_HEADER
@@ -47,25 +36,19 @@ build_plugin(streamlines
         ExportModule.cpp
         Lattice.hpp
         Lattice.cpp
-        Node.hpp
         Dynamics.hpp
-        Dynamics.cpp
-        NoDynamics.hpp
-        NoDynamics.cpp
-        BgkDynamics.hpp
-        BgkDynamics.cpp
-        BounceBackDynamics.hpp
-        BounceBackDynamics.cpp
-        ZouHeDynamics.hpp
-        ZouHeDynamics.cpp
         Boundary.hpp
         Boundary.cpp
         Converter.hpp
         Converter.cpp
         Boundaries.hpp
         Boundaries.cpp
-        MovingDynamics.hpp
-        MovingDynamics.cpp
+
+        # CPU
+        cpu/Lattice.cpp
+        cpu/Lattice.hpp
+        cpu/Node.hpp
+        cpu/Node.cpp
 )
 
 # ######################################################################### #

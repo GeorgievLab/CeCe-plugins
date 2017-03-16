@@ -167,6 +167,9 @@ function(build_plugin NAME)
     # Generate export header
     if (ARG_EXPORT_HEADER)
         include(GenerateExportHeader)
+        target_include_directories(${FULLNAME}
+            PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+        )
         generate_export_header(${FULLNAME}
             EXPORT_FILE_NAME "export.hpp"
             BASE_NAME "CECE_PLUGIN_${NAME}"

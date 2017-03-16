@@ -1,5 +1,5 @@
 /* ************************************************************************ */
-/* Georgiev Lab (c) 2015-2016                                               */
+/* Georgiev Lab (c) 2015-2017                                               */
 /* ************************************************************************ */
 /* Department of Cybernetics                                                */
 /* Faculty of Applied Sciences                                              */
@@ -44,17 +44,13 @@ namespace streamlines {
 /* ************************************************************************ */
 
 /**
- * @brief Utility class which store LB configuration.
+ * @brief      Utility with LB configuration.
  */
 class Descriptor
 {
 
 // Public Types
 public:
-
-
-    /// Population index type.
-    using DirectionType = unsigned int;
 
     /// Density type.
     using DensityType = RealType;
@@ -65,9 +61,11 @@ public:
     /// Velocity type.
     using VelocityType = Vector<RealType>;
 
-    /// Direction index type. @obsolete
-    using IndexType = DirectionType;
+    /// Population index.
+    using PopIndexType = int;
 
+    /// Distribution function type.
+    using DistributionType = RealType;
 
 // Public Constants
 public:
@@ -88,35 +86,35 @@ public:
     static constexpr RealType WEIGHT_DIAGONAL = 1.0 / 36.0;
 
     /// Number of populations.
-    static constexpr DirectionType SIZE = 9;
+    static constexpr PopIndexType SIZE = 9;
 
     /// Default density.
-    static constexpr DensityType DEFAULT_DENSITY = 1.0;
+    static constexpr RealType DEFAULT_DENSITY = 1.0;
 
     /// Direction index map.
-    static constexpr StaticArray<StaticArray<DirectionType, 3>, 3> INDEX_MAP{{
+    static constexpr StaticArray<StaticArray<PopIndexType, 3>, 3> INDEX_MAP{{
         {{1, 8, 7}},
         {{2, 0, 6}},
         {{3, 4, 5}}
     }};
 
     /// Direction index top line.
-    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<DirectionType, 3> TOP_LINE;
+    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<PopIndexType, 3> TOP_LINE;
 
     /// Direction index middle line.
-    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<DirectionType, 3> MIDDLE_LINE;
+    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<PopIndexType, 3> MIDDLE_LINE;
 
     /// Direction index bottom line.
-    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<DirectionType, 3> BOTTOM_LINE;
+    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<PopIndexType, 3> BOTTOM_LINE;
 
     /// Direction index left column.
-    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<DirectionType, 3> LEFT_COLUMN;
+    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<PopIndexType, 3> LEFT_COLUMN;
 
     /// Direction index middle column.
-    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<DirectionType, 3> MIDDLE_COLUMN;
+    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<PopIndexType, 3> MIDDLE_COLUMN;
 
     /// Direction index right column.
-    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<DirectionType, 3> RIGHT_COLUMN;
+    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<PopIndexType, 3> RIGHT_COLUMN;
 
     /// Direction weights.
     static constexpr StaticArray<RealType, SIZE> DIRECTION_WEIGHTS = {{
@@ -132,10 +130,10 @@ public:
     }};
 
     /// Direction velocities.
-    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<Vector<int>, SIZE> DIRECTION_VELOCITIES;
+    static const CECE_PLUGIN_STREAMLINES_EXPORT StaticArray<VelocityType, SIZE> DIRECTION_VELOCITIES;
 
     /// Direction opposites
-    static constexpr StaticArray<DirectionType, SIZE> DIRECTION_OPPOSITES = {{
+    static constexpr StaticArray<PopIndexType, SIZE> DIRECTION_OPPOSITES = {{
         0, 5, 6, 7, 8, 1, 2, 3, 4
     }};
 
@@ -144,8 +142,8 @@ public:
 public:
 
 
-    /// Type of stored data.
-    using DataType = StaticArray<DensityType, SIZE>;
+    /// Type for storing distribution functions.
+    using DistributionsType = StaticArray<DistributionType, SIZE>;
 
 
 // Public Operations
@@ -153,17 +151,16 @@ public:
 
 
     /**
-     * @brief Calculare equilibrium function.
+     * @brief      Calculare equilibrium function.
      *
-     * @param weight   Direction weight (w_i).
-     * @param dir      Direction vector (e_i).
-     * @param density  Density (rho).
-     * @param velocity Velocity (u).
+     * @param      weight    Direction weight (w_i).
+     * @param      dir       Direction vector (e_i).
+     * @param      density   Density (rho).
+     * @param      velocity  Velocity (u).
      *
-     * @return
+     * @return     The equilibrium.
      */
-    template<typename WeightT, typename DirectionT, typename DensityT, typename VelocityT>
-    static DensityT calcEquilibrium(WeightT weight, DirectionT dir, DensityT density, VelocityT velocity) noexcept
+    static DensityType calcEquilibrium(RealType weight, VelocityType dir, DensityType density, VelocityType velocity) noexcept
     {
         const auto vu = dot(dir, velocity);
         const auto uSq = velocity.getLengthSquared();
@@ -200,13 +197,13 @@ public:
 
 
     /**
-     * @brief Returns an opposite index.
+     * @brief      Returns an opposite index.
      *
-     * @param iPop Population index.
+     * @param      iPop  Population index.
      *
-     * @return Opposite index of iPop.
+     * @return     Opposite index of iPop.
      */
-    static DirectionType opposite(DirectionType iPop) noexcept
+    static PopIndexType opposite(PopIndexType iPop) noexcept
     {
         return DIRECTION_OPPOSITES[iPop];
     }

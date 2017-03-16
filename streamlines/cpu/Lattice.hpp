@@ -28,48 +28,29 @@
 /* ************************************************************************ */
 
 // CeCe
-#include "cece/core/Vector.hpp"
-#include "cece/core/FilePath.hpp"
+#include "cece/core/Grid.hpp"
 
 // Plugin
-#include "Dynamics.hpp"
-#include "Descriptor.hpp"
+#include "../Lattice.hpp"
+#include "Node.hpp"
 
 /* ************************************************************************ */
 
 namespace cece {
 namespace plugin {
 namespace streamlines {
+namespace cpu {
 
 /* ************************************************************************ */
 
 /**
- * @brief      Interface for Lattice Boltzmann implementation.
+ * @brief      CPU implementation of Lattice Boltzman.
+ *
+ * @note       Memory and speedup improvement taken from OpenLB TR1:
+ * @link http://optilb.com/openlb/wp-content/uploads/2011/12/olb-tr1.pdf
  */
-class Lattice
+class Lattice : public streamlines::Lattice
 {
-
-// Public Types
-public:
-
-    /// Density type.
-    using DensityType = Descriptor::DensityType;
-
-    /// Momentum type.
-    using MomentumType = Descriptor::MomentumType;
-
-    /// Velocity type.
-    using VelocityType = Descriptor::VelocityType;
-
-    /// Type of distribution functions
-    using DistributionsType = Descriptor::DistributionsType;
-
-    /// Coordinate type.
-    using CoordinateType = Vector<unsigned int>;
-
-    /// Size type.
-    using SizeType = Vector<unsigned int>;
-
 
 // Public Ctors & Dtors
 public:
@@ -84,10 +65,28 @@ public:
     Lattice(SizeType size, RealType omega);
 
 
+// Public Operators
+public:
+
+
     /**
-     * @brief      Destructor.
+     * @brief      Node access operator.
+     *
+     * @param      coord  The coordinate.
+     *
+     * @return     Node at given coordinate.
      */
-    virtual ~Lattice() = 0;
+    Node& operator[](const CoordinateType& coord) noexcept;
+
+
+    /**
+     * @brief      Node access operator.
+     *
+     * @param      coord  The coordinate.
+     *
+     * @return     Node at given coordinate.
+     */
+    const Node& operator[](const CoordinateType& coord) const noexcept;
 
 
 // Public Accessors & Mutators
@@ -95,29 +94,23 @@ public:
 
 
     /**
-     * @brief      Returns lattice size.
+     * @brief      Get node at given coordinate.
      *
-     * @return     The lattice size.
+     * @param      coord  The coordinate.
+     *
+     * @return     Node at given coordinate.
      */
-    SizeType getSize() const noexcept;
+    Node& get(const CoordinateType& coord) noexcept;
 
 
     /**
-     * @brief      Returns lattice relaxation frequency.
+     * @brief      Get node at given coordinate.
      *
-     * @return     The lattice relaxation frequency.
+     * @param      coord  The coordinate.
+     *
+     * @return     Node at given coordinate.
      */
-    RealType getOmega() const noexcept;
-
-
-    /**
-     * @brief      Check if coordinates are in range.
-     *
-     * @param[in]  coord  The coordinate.
-     *
-     * @return     Coordinate is in range.
-     */
-    bool inRange(CoordinateType coord) const noexcept;
+    const Node& get(const CoordinateType& coord) const noexcept;
 
 
     /**
@@ -127,7 +120,7 @@ public:
      *
      * @return     The dynamics.
      */
-    virtual Dynamics getDynamics(CoordinateType coord) const noexcept = 0;
+    Dynamics getDynamics(CoordinateType coord) const noexcept override;
 
 
     /**
@@ -137,7 +130,7 @@ public:
      *
      * @return     The velocity.
      */
-    virtual VelocityType getVelocity(CoordinateType coord) const noexcept = 0;
+    VelocityType getVelocity(CoordinateType coord) const noexcept override;
 
 
     /**
@@ -149,7 +142,7 @@ public:
      * @param[in]  coord     The coordinate.
      * @param[in]  velocity  The velocity.
      */
-    virtual void setVelocity(CoordinateType coord, VelocityType velocity) noexcept = 0;
+    void setVelocity(CoordinateType coord, VelocityType velocity) noexcept override;
 
 
     /**
@@ -159,7 +152,7 @@ public:
      *
      * @return     The density.
      */
-    virtual DensityType getDensity(CoordinateType coord) const noexcept = 0;
+    DensityType getDensity(CoordinateType coord) const noexcept override;
 
 
     /**
@@ -171,7 +164,7 @@ public:
      * @param[in]  coord    The coordinate.
      * @param[in]  density  The density.
      */
-    virtual void setDensity(CoordinateType coord, DensityType density) noexcept = 0;
+    void setDensity(CoordinateType coord, DensityType density) noexcept override;
 
 
     /**
@@ -184,7 +177,7 @@ public:
      * @param[in]  velocity  The velocity.
      * @param[in]  density   The density.
      */
-    virtual void setVelocityDensity(CoordinateType coord, VelocityType velocity, DensityType density) noexcept = 0;
+    void setVelocityDensity(CoordinateType coord, VelocityType velocity, DensityType density) noexcept override;
 
 
     /**
@@ -194,7 +187,7 @@ public:
      *
      * @return     The distribution functions.
      */
-    virtual DistributionsType getDistributions(CoordinateType coord) const noexcept = 0;
+    DistributionsType getDistributions(CoordinateType coord) const noexcept override;
 
 
     /**
@@ -203,67 +196,7 @@ public:
      * @param[in]  coord          The coordinate.
      * @param[in]  distributions  The distribution functions.
      */
-    virtual void setDistributions(CoordinateType coord, DistributionsType distributions) noexcept = 0;
-
-
-    /**
-     * @brief      Determines if dynamics at given coordinate is none.
-     *
-     * @param[in]  coord  The coordinate.
-     *
-     * @return     True if is fluid, False otherwise.
-     */
-    bool isNoneDynamics(CoordinateType coord) const noexcept;
-
-
-    /**
-     * @brief      Determines if dynamics at given coordinate is fluid.
-     *
-     * @param[in]  coord  The coordinate.
-     *
-     * @return     True if is fluid, False otherwise.
-     */
-    bool isFluidDynamics(CoordinateType coord) const noexcept;
-
-
-    /**
-     * @brief      Determines if dynamics at given coordinate is wall.
-     *
-     * @param[in]  coord  The coordinate.
-     *
-     * @return     True if is wall, False otherwise.
-     */
-    bool isWallDynamics(CoordinateType coord) const noexcept;
-
-
-    /**
-     * @brief      Determines if dynamics at given coordinate is inlet.
-     *
-     * @param[in]  coord  The coordinate.
-     *
-     * @return     True if is inlet, False otherwise.
-     */
-    bool isInletDynamics(CoordinateType coord) const noexcept;
-
-
-    /**
-     * @brief      Determines if dynamics at given coordinate is outlet.
-     *
-     * @param[in]  coord  The coordinate.
-     *
-     * @return     True if is outlet, False otherwise.
-     */
-    bool isOutletDynamics(CoordinateType coord) const noexcept;
-
-
-    /**
-     * @brief      Determines if dynamics at given coordinate is an object.
-     *
-     * @param[in]  coord  The coordinate.
-     *
-     * @return     True if is an object, False otherwise.
-     */
-    bool isObjectDynamics(CoordinateType coord) const noexcept;
+    void setDistributions(CoordinateType coord, DistributionsType distributions) noexcept override;
 
 
     /**
@@ -271,7 +204,7 @@ public:
      *
      * @param[in]  coord  The coordinate.
      */
-    virtual void setNoneDynamics(CoordinateType coord) noexcept = 0;
+    void setNoneDynamics(CoordinateType coord) noexcept override;
 
 
     /**
@@ -279,7 +212,7 @@ public:
      *
      * @param[in]  coord  The coordinate.
      */
-    virtual void setFluidDynamics(CoordinateType coord) noexcept = 0;
+    void setFluidDynamics(CoordinateType coord) noexcept override;
 
 
     /**
@@ -287,7 +220,7 @@ public:
      *
      * @param[in]  coord  The coordinate.
      */
-    virtual void setWallDynamics(CoordinateType coord) noexcept = 0;
+    void setWallDynamics(CoordinateType coord) noexcept override;
 
 
     /**
@@ -296,7 +229,7 @@ public:
      * @param[in]  coord     The coordinate.
      * @param[in]  velocity  The inlet velocity.
      */
-    virtual void setInletDynamics(CoordinateType coord, VelocityType velocity) noexcept = 0;
+    void setInletDynamics(CoordinateType coord, VelocityType velocity) noexcept override;
 
 
     /**
@@ -305,7 +238,7 @@ public:
      * @param[in]  coord    The coordinate.
      * @param[in]  density  The outlet density.
      */
-    virtual void setOutletDynamics(CoordinateType coord, DensityType density) noexcept = 0;
+    void setOutletDynamics(CoordinateType coord, DensityType density) noexcept override;
 
 
     /**
@@ -314,7 +247,7 @@ public:
      * @param[in]  coord     The coordinate.
      * @param[in]  velocity  The object velocity.
      */
-    virtual void setObjectDynamics(CoordinateType coord, VelocityType velocity) noexcept = 0;
+    void setObjectDynamics(CoordinateType coord, VelocityType velocity) noexcept override;
 
 
 // Public Operations
@@ -327,7 +260,7 @@ public:
      * @details    As default values it means zero velocity with default density
      *             (equilibrium).
      */
-    virtual void initDefault() = 0;
+    void initDefault() override;
 
 
     /**
@@ -335,21 +268,42 @@ public:
      *
      * @param[in]  count  The number of inner iterations.
      */
-    virtual void update(unsigned int count = 1) = 0;
+    void update(unsigned int count = 1) override;
+
+
+// Private Operations
+private:
+
+
+    /**
+     * @brief      Perform collision.
+     */
+    void collide();
+
+
+    /**
+     * @brief      Perform streaming.
+     */
+    void stream();
+
+
+    /**
+     * @brief      Perform collision and streaming.
+     */
+    void collideAndStream();
 
 
 // Private Data Members
-public:
+private:
 
-    /// Lattice size.
-    SizeType m_size;
+    /// Current lattice data.
+    core::Grid<Node> m_data;
 
-    /// Fluid relaxation frequency.
-    RealType m_omega;
 };
 
 /* ************************************************************************ */
 
+}
 }
 }
 }
@@ -361,81 +315,39 @@ public:
 namespace cece {
 namespace plugin {
 namespace streamlines {
+namespace cpu {
 
 /* ************************************************************************ */
 
-inline Lattice::Lattice(SizeType size, RealType omega)
-    : m_size(size)
-    , m_omega(omega)
+inline Node& Lattice::operator[](const CoordinateType& coord) noexcept
 {
-    // Nothing to do
+    return get(coord);
 }
 
 /* ************************************************************************ */
 
-inline Lattice::SizeType Lattice::getSize() const noexcept
+inline const Node& Lattice::operator[](const CoordinateType& coord) const noexcept
 {
-    return m_size;
+    return get(coord);
 }
 
 /* ************************************************************************ */
 
-inline RealType Lattice::getOmega() const noexcept
+inline Node& Lattice::get(const CoordinateType& coord) noexcept
 {
-    return m_omega;
+    return m_data[coord];
 }
 
 /* ************************************************************************ */
 
-inline bool Lattice::inRange(CoordinateType coord) const noexcept
+inline const Node& Lattice::get(const CoordinateType& coord) const noexcept
 {
-    return coord.inRange(Zero, m_size);
+    return m_data[coord];
 }
 
 /* ************************************************************************ */
 
-inline bool Lattice::isNoneDynamics(CoordinateType coord) const noexcept
-{
-    return getDynamics(coord) == Dynamics::None;
 }
-
-/* ************************************************************************ */
-
-inline bool Lattice::isFluidDynamics(CoordinateType coord) const noexcept
-{
-    return getDynamics(coord) == Dynamics::Fluid;
-}
-
-/* ************************************************************************ */
-
-inline bool Lattice::isWallDynamics(CoordinateType coord) const noexcept
-{
-    return getDynamics(coord) == Dynamics::Wall;
-}
-
-/* ************************************************************************ */
-
-inline bool Lattice::isInletDynamics(CoordinateType coord) const noexcept
-{
-    return getDynamics(coord) == Dynamics::Inlet;
-}
-
-/* ************************************************************************ */
-
-inline bool Lattice::isOutletDynamics(CoordinateType coord) const noexcept
-{
-    return getDynamics(coord) == Dynamics::Outlet;
-}
-
-/* ************************************************************************ */
-
-inline bool Lattice::isObjectDynamics(CoordinateType coord) const noexcept
-{
-    return getDynamics(coord) == Dynamics::Object;
-}
-
-/* ************************************************************************ */
-
 }
 }
 }

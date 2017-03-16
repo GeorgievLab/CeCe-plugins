@@ -1,5 +1,5 @@
 /* ************************************************************************ */
-/* Georgiev Lab (c) 2015-2016                                               */
+/* Georgiev Lab (c) 2015-2017                                               */
 /* ************************************************************************ */
 /* Department of Cybernetics                                                */
 /* Faculty of Applied Sciences                                              */
@@ -34,35 +34,35 @@ namespace streamlines {
 
 /* ************************************************************************ */
 
-constexpr StaticArray<StaticArray<Descriptor::DirectionType, 3>, 3> Descriptor::INDEX_MAP;
+constexpr StaticArray<StaticArray<Descriptor::PopIndexType, 3>, 3> Descriptor::INDEX_MAP;
 
 /* ************************************************************************ */
 
-const StaticArray<Descriptor::DirectionType, 3> Descriptor::TOP_LINE = INDEX_MAP[0];
+const StaticArray<Descriptor::PopIndexType, 3> Descriptor::TOP_LINE = INDEX_MAP[0];
 
 /* ************************************************************************ */
 
-const StaticArray<Descriptor::DirectionType, 3> Descriptor::MIDDLE_LINE = INDEX_MAP[1];
+const StaticArray<Descriptor::PopIndexType, 3> Descriptor::MIDDLE_LINE = INDEX_MAP[1];
 
 /* ************************************************************************ */
 
-const StaticArray<Descriptor::DirectionType, 3> Descriptor::BOTTOM_LINE = INDEX_MAP[2];
+const StaticArray<Descriptor::PopIndexType, 3> Descriptor::BOTTOM_LINE = INDEX_MAP[2];
 
 /* ************************************************************************ */
 
-const StaticArray<Descriptor::DirectionType, 3> Descriptor::LEFT_COLUMN = {{
+const StaticArray<Descriptor::PopIndexType, 3> Descriptor::LEFT_COLUMN = {{
     INDEX_MAP[0][0], INDEX_MAP[1][0], INDEX_MAP[2][0]
 }};
 
 /* ************************************************************************ */
 
-const StaticArray<Descriptor::DirectionType, 3> Descriptor::MIDDLE_COLUMN = {{
+const StaticArray<Descriptor::PopIndexType, 3> Descriptor::MIDDLE_COLUMN = {{
     INDEX_MAP[0][1], INDEX_MAP[1][1], INDEX_MAP[2][1]
 }};
 
 /* ************************************************************************ */
 
-const StaticArray<Descriptor::DirectionType, 3> Descriptor::RIGHT_COLUMN = {{
+const StaticArray<Descriptor::PopIndexType, 3> Descriptor::RIGHT_COLUMN = {{
     INDEX_MAP[0][2], INDEX_MAP[1][2], INDEX_MAP[2][2]
 }};
 
@@ -72,14 +72,14 @@ constexpr StaticArray<RealType, Descriptor::SIZE> Descriptor::DIRECTION_WEIGHTS;
 
 /* ************************************************************************ */
 
-const StaticArray<Vector<int>, Descriptor::SIZE> Descriptor::DIRECTION_VELOCITIES = {{
+const StaticArray<Descriptor::VelocityType, Descriptor::SIZE> Descriptor::DIRECTION_VELOCITIES = {{
     { 0,  0},
     {-1,  1}, {-1,  0}, {-1, -1}, { 0, -1}, { 1, -1}, { 1,  0}, { 1,  1}, { 0,  1}
 }};
 
 /* ************************************************************************ */
 
-constexpr StaticArray<Descriptor::DirectionType, Descriptor::SIZE> Descriptor::DIRECTION_OPPOSITES;
+constexpr StaticArray<Descriptor::PopIndexType, Descriptor::SIZE> Descriptor::DIRECTION_OPPOSITES;
 
 /* ************************************************************************ */
 

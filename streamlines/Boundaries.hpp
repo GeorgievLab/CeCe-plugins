@@ -1,5 +1,5 @@
 /* ************************************************************************ */
-/* Georgiev Lab (c) 2015-2016                                               */
+/* Georgiev Lab (c) 2015-2017                                               */
 /* ************************************************************************ */
 /* Department of Cybernetics                                                */
 /* Faculty of Applied Sciences                                              */
@@ -27,11 +27,7 @@
 
 /* ************************************************************************ */
 
-// C++
-#include <cstddef>
-
 // CeCe
-#include "cece/core/Units.hpp"
 #include "cece/core/StringView.hpp"
 #include "cece/core/ViewPtr.hpp"
 #include "cece/core/DynamicArray.hpp"
@@ -42,7 +38,6 @@
 /* ************************************************************************ */
 
 namespace cece { namespace config { class Configuration; } }
-namespace cece { namespace simulator { class Simulation; } }
 
 /* ************************************************************************ */
 
@@ -53,52 +48,33 @@ namespace streamlines {
 /* ************************************************************************ */
 
 /**
- * @brief A set of streamlines boundaries.
+ * @brief      A set of streamlines boundaries.
  */
 class Boundaries
 {
-
-
-// Public Ctors & Dtors
-public:
-
-
-    /**
-     * @brief Constructor.
-     *
-     * @param simulation
-     */
-    explicit Boundaries(simulator::Simulation& simulation);
-
 
 // Public Operators
 public:
 
 
     /**
-     * @brief Get boundary by position.
+     * @brief      Get boundary by position.
      *
-     * @param position
+     * @param      position  The position
      *
-     * @return
+     * @return     Boundary at position.
      */
-    Boundary& operator[](std::size_t position) noexcept
-    {
-        return get(position);
-    }
+    Boundary& operator[](int position) noexcept;
 
 
     /**
-     * @brief Get boundary by position.
+     * @brief      Get boundary by position.
      *
-     * @param position
+     * @param      position  The position.
      *
-     * @return
+     * @return     Boundary at position.
      */
-    const Boundary& operator[](std::size_t position) const noexcept
-    {
-        return get(position);
-    }
+    const Boundary& operator[](int position) const noexcept;
 
 
 // Public Accessors
@@ -106,92 +82,59 @@ public:
 
 
     /**
-     * @brief Returns a number of boundaries.
+     * @brief      Returns a number of boundaries.
      *
-     * @return
+     * @return     The number of boundaries.
      */
-    int getCount() const noexcept
-    {
-        return m_boundaries.size();
-    }
+    int getCount() const noexcept;
 
 
     /**
-     * @brief Return simulation.
+     * @brief      Get boundary by position.
      *
-     * @return
+     * @param      position  The position.
+     *
+     * @return     Reference to boundary.
      */
-    simulator::Simulation& getSimulation() const noexcept
-    {
-        return m_simulation;
-    }
+    Boundary& get(int position) noexcept;
 
 
     /**
-     * @brief Get boundary by position.
+     * @brief      Get boundary by position.
      *
-     * @param position
+     * @param      position  The position.
      *
-     * @return
+     * @return     Reference to boundary.
      */
-    Boundary& get(std::size_t position) noexcept
-    {
-        return m_boundaries[position];
-    }
+    const Boundary& get(int position) const noexcept;
 
 
     /**
-     * @brief Get boundary by position.
+     * @brief      Find boundary by name.
      *
-     * @param position
+     * @param      name  Boundary name.
      *
-     * @return
-     */
-    const Boundary& get(std::size_t position) const noexcept
-    {
-        return m_boundaries[position];
-    }
-
-
-    /**
-     * @brief Find boundary by name.
-     *
-     * @param name Boundary name.
-     *
-     * @return
+     * @return     Pointer to boundary or nullptr.
      */
     ViewPtr<Boundary> find(StringView name) noexcept;
 
 
     /**
-     * @brief Find boundary by name.
+     * @brief      Find boundary by name.
      *
-     * @param name Boundary name.
+     * @param      name  Boundary name.
      *
-     * @return
+     * @return     Pointer to boundary or nullptr.
      */
     ViewPtr<const Boundary> find(StringView name) const noexcept;
 
 
     /**
-     * @brief Check if given dynamics is boundary dynamics.
+     * @brief      Returns begin iterator.
      *
-     * @param dynamics
-     *
-     * @return
+     * @return     Begin iterator.
      */
-    bool isBoundaryDynamics(ViewPtr<Dynamics> dynamics) const noexcept;
-
-
-    /**
-     * @brief Check if given dynamics is boundary dynamics.
-     *
-     * @param dynamics
-     * @param type
-     *
-     * @return
-     */
-    bool isBoundaryDynamics(ViewPtr<Dynamics> dynamics, Boundary::Type type) const noexcept;
+    DynamicArray<Boundary>::iterator begin() noexcept;
 
 
     /**
@@ -199,10 +142,7 @@ public:
      *
      * @return     Begin iterator.
      */
-    DynamicArray<Boundary>::iterator begin() noexcept
-    {
-        return m_boundaries.begin();
-    }
+    DynamicArray<Boundary>::const_iterator begin() const noexcept;
 
 
     /**
@@ -210,21 +150,7 @@ public:
      *
      * @return     Begin iterator.
      */
-    DynamicArray<Boundary>::const_iterator begin() const noexcept
-    {
-        return m_boundaries.begin();
-    }
-
-
-    /**
-     * @brief      Returns begin iterator.
-     *
-     * @return     Begin iterator.
-     */
-    DynamicArray<Boundary>::const_iterator cbegin() const noexcept
-    {
-        return m_boundaries.cbegin();
-    }
+    DynamicArray<Boundary>::const_iterator cbegin() const noexcept;
 
 
     /**
@@ -232,10 +158,7 @@ public:
      *
      * @return     End iterator.
      */
-    DynamicArray<Boundary>::iterator end() noexcept
-    {
-        return m_boundaries.end();
-    }
+    DynamicArray<Boundary>::iterator end() noexcept;
 
 
     /**
@@ -243,10 +166,7 @@ public:
      *
      * @return     End iterator.
      */
-    DynamicArray<Boundary>::const_iterator end() const noexcept
-    {
-        return m_boundaries.end();
-    }
+    DynamicArray<Boundary>::const_iterator end() const noexcept;
 
 
     /**
@@ -254,10 +174,7 @@ public:
      *
      * @return     End iterator.
      */
-    DynamicArray<Boundary>::const_iterator cend() const noexcept
-    {
-        return m_boundaries.cend();
-    }
+    DynamicArray<Boundary>::const_iterator cend() const noexcept;
 
 
 // Public Operations
@@ -265,65 +182,129 @@ public:
 
 
     /**
-     * @brief Initialize default boundaries.
-     */
-    void initDefault();
-
-
-    /**
-     * @brief Initialize boundaries.
-     * @param lattice
-     * @param fluidDynamics
-     */
-    void init(Lattice& lattice, ViewPtr<Dynamics> fluidDynamics);
-
-
-    /**
-     * @brief Update conditions blocks.
+     * @brief      Load module configuration.
      *
-     * @param lattice
-     * @param converter
-     * @param fluidDynamics
-     */
-    void updateBlocks(Lattice& lattice, Converter& converter, ViewPtr<Dynamics> fluidDynamics);
-
-
-    /**
-     * @brief Apply boundary conditions.
-     *
-     * @param lattice
-     * @param converter
-     * @param fluidDynamics
-     */
-    void applyConditions(Lattice& lattice, Converter& converter, ViewPtr<Dynamics> fluidDynamics);
-
-
-    /**
-     * @brief Load module configuration.
-     *
-     * @param config Source configuration.
+     * @param      config  Source configuration.
      */
     void loadConfig(const config::Configuration& config);
 
 
     /**
-     * @brief Store module configuration.
+     * @brief      Store module configuration.
      *
-     * @param config Output configuration.
+     * @param      config  Output configuration.
      */
     void storeConfig(config::Configuration& config) const;
+
+
+// Private Operations
+private:
+
+
+    /**
+     * @brief      Initialize default boundaries.
+     */
+    void initDefault();
 
 
 // Private Data Members
 private:
 
-    /// Simulation reference.
-    simulator::Simulation& m_simulation;
-
     /// Stored boundaries.
     DynamicArray<Boundary> m_boundaries;
 
 };
+
+/* ************************************************************************ */
+
+}
+}
+}
+
+/* ************************************************************************ */
+/* ************************************************************************ */
+/* ************************************************************************ */
+
+namespace cece {
+namespace plugin {
+namespace streamlines {
+
+/* ************************************************************************ */
+
+inline Boundary& Boundaries::operator[](int position) noexcept
+{
+    return get(position);
+}
+
+/* ************************************************************************ */
+
+inline const Boundary& Boundaries::operator[](int position) const noexcept
+{
+    return get(position);
+}
+
+/* ************************************************************************ */
+
+inline int Boundaries::getCount() const noexcept
+{
+    return m_boundaries.size();
+}
+
+/* ************************************************************************ */
+
+inline Boundary& Boundaries::get(int position) noexcept
+{
+    return m_boundaries[position];
+}
+
+/* ************************************************************************ */
+
+inline const Boundary& Boundaries::get(int position) const noexcept
+{
+    return m_boundaries[position];
+}
+
+/* ************************************************************************ */
+
+inline DynamicArray<Boundary>::iterator Boundaries::begin() noexcept
+{
+    return m_boundaries.begin();
+}
+
+/* ************************************************************************ */
+
+inline DynamicArray<Boundary>::const_iterator Boundaries::begin() const noexcept
+{
+    return m_boundaries.begin();
+}
+
+/* ************************************************************************ */
+
+inline DynamicArray<Boundary>::const_iterator Boundaries::cbegin() const noexcept
+{
+    return m_boundaries.cbegin();
+}
+
+/* ************************************************************************ */
+
+inline DynamicArray<Boundary>::iterator Boundaries::end() noexcept
+{
+    return m_boundaries.end();
+}
+
+/* ************************************************************************ */
+
+inline DynamicArray<Boundary>::const_iterator Boundaries::end() const noexcept
+{
+    return m_boundaries.end();
+}
+
+/* ************************************************************************ */
+
+inline DynamicArray<Boundary>::const_iterator Boundaries::cend() const noexcept
+{
+    return m_boundaries.cend();
+}
 
 /* ************************************************************************ */
 

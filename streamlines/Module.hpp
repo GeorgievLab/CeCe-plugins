@@ -57,6 +57,7 @@
 #include "Boundaries.hpp"
 #include "Lattice.hpp"
 #include "Converter.hpp"
+#include "Descriptor.hpp"
 
 /* ************************************************************************ */
 
@@ -105,168 +106,91 @@ public:
 
 
     /**
-     * @brief Returns units converter.
+     * @brief      Returns units converter.
      *
-     * @return
+     * @return     The units converter.
      */
-    const Converter& getConverter() const noexcept
-    {
-        return m_converter;
-    }
+    const Converter& getConverter() const noexcept;
 
 
     /**
-     * @brief Returns units converter.
+     * @brief      Returns units converter.
      *
-     * @return
+     * @return     The units converter.
      */
-    Converter& getConverter() noexcept
-    {
-        return m_converter;
-    }
+    Converter& getConverter() noexcept;
 
 
     /**
-     * @brief Returns init iteration count.
+     * @brief      Returns number of init iterations.
      *
-     * @return
+     * @return     Init iterations.
      */
-    IterationType getInitIterations() const noexcept
-    {
-        return m_initIterations;
-    }
+    IterationType getInitIterations() const noexcept;
 
 
     /**
-     * @brief Returns init iteration count.
+     * @brief      Set number of init iterations.
      *
-     * @return
+     * @param      iterations  The number of init iterations.
      */
-    IterationType getInnerIterations() const noexcept
-    {
-        return m_innerIterations;
-    }
+    void setInitIterations(IterationType iterations) noexcept;
 
 
     /**
-     * @brief Returns boundaries.
+     * @brief      Returns init iteration count.
      *
-     * @return
+     * @return     Init iterations.
      */
-    const Boundaries& getBoundaries() const noexcept
-    {
-        return m_boundaries;
-    }
+    IterationType getInnerIterations() const noexcept;
 
 
     /**
-     * @brief If dynamic objects are used as obstacles.
+     * @brief      Set number of inner iterations.
      *
-     * @return
+     * @param      iterations  The number of iterations.
      */
-    bool isDynamicObjectsObstacles() const noexcept
-    {
-        return m_dynamicObjectsObstacles;
-    }
+    void setInnerIterations(IterationType iterations) noexcept;
 
 
     /**
-     * @brief Returns if streamlines are dynamic during simulation.
+     * @brief      Returns boundaries.
      *
-     * @return
+     * @return     The boundaries.
      */
-    bool isDynamic() const noexcept
-    {
-        return m_dynamic;
-    }
+    const Boundaries& getBoundaries() const noexcept;
 
 
     /**
-     * @brief Returns fluid dynamics.
+     * @brief      If dynamic objects are used as obstacles.
      *
-     * @return
+     * @return     True if dynamic objects obstacles, False otherwise.
      */
-    ViewPtr<Dynamics> getFluidDynamics() const noexcept
-    {
-        return m_fluidDynamics;
-    }
+    bool isDynamicObjectsObstacles() const noexcept;
 
 
     /**
-     * @brief Returns wall dynamics.
+     * @brief      Enable or disable dynamic objects obstacles.
      *
-     * @return
+     * @param      flag  The flag.
      */
-    ViewPtr<Dynamics> getWallDynamics() const noexcept
-    {
-        return m_wallDynamics;
-    }
+    void setDynamicObjectsObstacles(bool flag) noexcept;
 
 
     /**
-     * @brief Set init iteration count.
+     * @brief      Returns if streamlines are dynamic during simulation.
      *
-     * @param iterations
+     * @return     True if dynamic, False otherwise.
      */
-    void setInitIterations(IterationType iterations) noexcept
-    {
-        m_initIterations = iterations;
-    }
+    bool isDynamic() const noexcept;
 
 
     /**
-     * @brief Set inner iteration count.
+     * @brief      Set if streamlines should be dynamic.
      *
-     * @param iterations
+     * @param[in]  flag  If streamlines are dynamic.
      */
-    void setInnerIterations(IterationType iterations) noexcept
-    {
-        m_innerIterations = iterations;
-    }
-
-
-    /**
-     * @brief Enable or disable dynamic objects obstacles.
-     *
-     * @param flag
-     */
-    void setDynamicObjectsObstacles(bool flag) noexcept
-    {
-        m_dynamicObjectsObstacles = flag;
-    }
-
-
-    /**
-     * @brief Set if streamlines should be dynamic.
-     *
-     * @param dynamic
-     */
-    void setDynamic(bool dynamic)
-    {
-        m_dynamic = dynamic;
-    }
-
-
-    /**
-     * @brief Set fluid dynamics.
-     *
-     * @param dynamics
-     */
-    void setFluidDynamics(UniquePtr<Dynamics> dynamics) noexcept
-    {
-        m_fluidDynamics = std::move(dynamics);
-    }
-
-
-    /**
-     * @brief Set wall dynamics.
-     *
-     * @param dynamics
-     */
-    void setWallDynamics(UniquePtr<Dynamics> dynamics) noexcept
-    {
-        m_wallDynamics = std::move(dynamics);
-    }
+    void setDynamic(bool flag);
 
 
     /**
@@ -274,7 +198,7 @@ public:
      *
      * @return     The lattice size.
      */
-    Size getLatticeSize() const noexcept;
+    Lattice::SizeType getLatticeSize() const noexcept;
 
 
     /**
@@ -323,16 +247,7 @@ public:
      *
      * @return     The dynamics.
      */
-    ViewPtr<Dynamics> getDynamics(Coordinate coord) const;
-
-
-    /**
-     * @brief      Change dynamics at given coordinate.
-     *
-     * @param[in]  coord     The coordinate.
-     * @param[in]  dynamics  The dynamics.
-     */
-    void setDynamics(Coordinate coord, ViewPtr<Dynamics> dynamics);
+    Dynamics getDynamics(Coordinate coord) const;
 
 
     /**
@@ -342,7 +257,7 @@ public:
      *
      * @return     The distribution functions.
      */
-    Descriptor::DataType getDistribution(Coordinate coord) const;
+    Lattice::DistributionsType getDistributions(Coordinate coord) const;
 
 
 // Public Operations
@@ -350,37 +265,31 @@ public:
 
 
     /**
-     * @brief Initialize lattice.
+     * @brief      Initialize module.
      *
-     * @param flag
+     * @param      flag  The termination variable.
      */
     void init(AtomicBool& flag) override;
 
 
     /**
-     * @brief Initialize barriers.
-     */
-    void initBarriers();
-
-
-    /**
-     * @brief Load module configuration.
+     * @brief      Load module configuration.
      *
-     * @param config Source configuration.
+     * @param      config  Source configuration.
      */
     void loadConfig(const config::Configuration& config) override;
 
 
     /**
-     * @brief Store module configuration.
+     * @brief      Store module configuration.
      *
-     * @param config Output configuration.
+     * @param      config  Output configuration.
      */
     void storeConfig(config::Configuration& config) const override;
 
 
     /**
-     * @brief Update module state.
+     * @brief      Update module state.
      */
     void update() override;
 
@@ -388,30 +297,34 @@ public:
 #ifdef CECE_RENDER
 
     /**
-     * @brief Render module.
+     * @brief      Render module.
      *
-     * @param visualization
-     * @param context Rendering context.
+     * @param      visualization  The visualization.
+     * @param      context        Rendering context.
      */
     void draw(const simulator::Visualization& visualization, render::Context& context) override;
 
 
     /**
-     * @brief Store current state for drawing.
-     * State should be stored in back state because the front state is
-     * used for rendering.
-     * Drawing state should contain data that can be modified during update()
-     * call and are used for rendering.
-     * @param visualization Visualization context.
+     * @brief      Store current state for drawing.
+     *
+     * @details    State should be stored in back state because the front state
+     *             is used for rendering. Drawing state should contain data that
+     *             can be modified during update() call and are used for
+     *             rendering.
+     *
+     * @param      visualization  Visualization context.
      */
     void drawStoreState(const simulator::Visualization& visualization) override;
 
 
     /**
-     * @brief Swap render state.
-     * Calling this function should be guarded by mutex for all modules
-     * to ensure all modules are in same render state.
-     * Function should be fast because otherwise it will block rendering.
+     * @brief      Swap render state.
+     *
+     * @details    Calling this function should be guarded by mutex for all
+     *             modules to ensure all modules are in same render state.
+     *             Function should be fast because otherwise it will block
+     *             rendering.
      */
     void drawSwapState() override;
 
@@ -423,85 +336,88 @@ protected:
 
 
     /**
-     * @brief Create fluid dynamics.
+     * @brief      Update lattice dynamics.
+     */
+    void updateDynamics();
+
+
+    /**
+     * @brief      Apply streamlines to objects.
+     */
+    void updateObjects();
+
+
+    /**
+     * @brief      Apply streamlines to object.
      *
-     * @return
+     * @param      object  The object.
      */
-    virtual UniquePtr<Dynamics> createFluidDynamics() const;
+    void updateObject(object::Object& object);
 
 
     /**
-     * @brief Create wall dynamics.
+     * @brief      Apply streamlines to object in static mode.
      *
-     * @return
+     * @param      object  The object.
      */
-    virtual UniquePtr<Dynamics> createWallDynamics() const;
+    void updateObjectStatic(object::Object& object);
 
 
     /**
-     * @brief Create border dynamics.
+     * @brief      Apply streamlines to object in dynamic mode.
      *
-     * @param pos
+     * @param      object  The object.
+     */
+    void updateObjectDynamic(object::Object& object);
+
+
+    /**
+     * @brief      Remove unreachable dynamics.
      *
-     * @return
-     */
-    virtual UniquePtr<Dynamics> createBorderDynamics(Boundary::Position pos) const;
-
-
-    /**
-     * @brief Update obstacle map from objects.
-     */
-    void updateObstacleMap();
-
-
-    /**
-     * @brief Apply streamlines to objects.
-     */
-    void applyToObjects();
-
-
-    /**
-     * @brief Apply streamlines to object.
+     * @details    Remove inner wall dynamics.
      *
-     * @param object
+     * @param[in]  dynamics  The dynamics to remove.
      */
-    void applyToObject(object::Object& object);
+    void removeUnreachableDynamics(Dynamics dynamics);
 
 
     /**
-     * @brief Apply boundary conditions.
+     * @brief      Set boundaries to lattice.
      */
-    void applyBoundaryConditions();
+    void updateBoundaries();
 
 
     /**
-     * @brief Print streamlines informations.
-     */
-    virtual void printInfo();
-
-
-    /**
-     * @brief Store streamlines data to file.
+     * @brief      Set boundary to lattice.
      *
-     * @param filename
+     * @param[in]  boundary  The boundary.
+     */
+    void updateBoundary(const Boundary& boundary);
+
+
+    /**
+     * @brief      Store streamlines data to file.
+     *
+     * @param      filename  The destination filename.
      */
     void storeToFile(const FilePath& filename);
 
 
     /**
-     * @brief Load streamlines data from file.
+     * @brief      Load streamlines data from file.
      *
-     * @param filename
+     * @param      filename  The source filename.
      */
     void loadFromFile(const FilePath& filename);
 
 
     /**
-     * @brief Calculate lattice hash.
+     * @brief      Calculate lattice hash.
      *
-     * @return
+     * @return     The lattice hash.
      */
     std::size_t calculateLatticeHash() const noexcept;
+
 
 // Private Structures
 private:
@@ -522,6 +438,9 @@ private:
     /// Units converter.
     Converter m_converter;
 
+    /// Lattice implementation.
+    UniquePtr<Lattice> m_lattice;
+
     /// Number of init iterations.
     IterationType m_initIterations = 0;
 
@@ -536,9 +455,6 @@ private:
 
     /// Path to initialization file.
     FilePath m_initFile;
-
-    /// Lattice.
-    Lattice m_lattice;
 
     /// Use dynamic objects as obstacles
     bool m_dynamicObjectsObstacles = false;
@@ -569,18 +485,152 @@ private:
     render::State<RenderState> m_drawableState;
 #endif
 
-    /// Used flow dynamics.
-    UniquePtr<Dynamics> m_fluidDynamics;
-
-    /// Used wall dynamics.
-    UniquePtr<Dynamics> m_wallDynamics;
-
     /// Map of moving obstacles (Grid uses std::vector and bool is an issue).
     Grid<char> m_movingObstacleMap;
 
     /// Maximum force which can be applied to object.
     units::ForceVector m_maxForce = {units::N(1), units::N(1)};
 };
+
+/* ************************************************************************ */
+
+}
+}
+}
+
+/* ************************************************************************ */
+/* ************************************************************************ */
+/* ************************************************************************ */
+
+namespace cece {
+namespace plugin {
+namespace streamlines {
+
+/* ************************************************************************ */
+
+inline const Converter& Module::getConverter() const noexcept
+{
+    return m_converter;
+}
+
+/* ************************************************************************ */
+
+inline Converter& Module::getConverter() noexcept
+{
+    return m_converter;
+}
+
+/* ************************************************************************ */
+
+inline IterationType Module::getInitIterations() const noexcept
+{
+    return m_initIterations;
+}
+
+/* ************************************************************************ */
+
+inline void Module::setInitIterations(IterationType iterations) noexcept
+{
+    m_initIterations = iterations;
+}
+
+/* ************************************************************************ */
+
+inline IterationType Module::getInnerIterations() const noexcept
+{
+    return m_innerIterations;
+}
+
+/* ************************************************************************ */
+
+inline void Module::setInnerIterations(IterationType iterations) noexcept
+{
+    m_innerIterations = iterations;
+}
+
+/* ************************************************************************ */
+
+inline const Boundaries& Module::getBoundaries() const noexcept
+{
+    return m_boundaries;
+}
+
+/* ************************************************************************ */
+
+inline bool Module::isDynamicObjectsObstacles() const noexcept
+{
+    return m_dynamicObjectsObstacles;
+}
+
+/* ************************************************************************ */
+
+inline void Module::setDynamicObjectsObstacles(bool flag) noexcept
+{
+    m_dynamicObjectsObstacles = flag;
+}
+
+/* ************************************************************************ */
+
+inline bool Module::isDynamic() const noexcept
+{
+    return m_dynamic;
+}
+
+/* ************************************************************************ */
+
+inline void Module::setDynamic(bool flag)
+{
+    m_dynamic = flag;
+}
+
+/* ************************************************************************ */
+
+inline Lattice::SizeType Module::getLatticeSize() const noexcept
+{
+    return m_lattice->getSize();
+}
+
+/* ************************************************************************ */
+
+inline bool Module::inLatticeRange(Coordinate coord) const noexcept
+{
+    return m_lattice->inRange(coord);
+}
+
+/* ************************************************************************ */
+
+inline units::VelocityVector Module::getVelocity(Coordinate coord) const
+{
+    return m_converter.convertVelocity(m_lattice->getVelocity(coord));
+}
+
+/* ************************************************************************ */
+
+inline void Module::setVelocity(Coordinate coord, units::VelocityVector velocity)
+{
+    m_lattice->setVelocity(coord, m_converter.convertVelocity(velocity));
+}
+
+/* ************************************************************************ */
+
+inline Pressure Module::getPressure(Coordinate coord) const
+{
+    return Pressure(m_lattice->getDensity(coord));
+}
+
+/* ************************************************************************ */
+
+inline Dynamics Module::getDynamics(Coordinate coord) const
+{
+    return m_lattice->getDynamics(coord);
+}
+
+/* ************************************************************************ */
+
+inline Lattice::DistributionsType Module::getDistributions(Coordinate coord) const
+{
+    return m_lattice->getDistributions(coord);
+}
 
 /* ************************************************************************ */
 

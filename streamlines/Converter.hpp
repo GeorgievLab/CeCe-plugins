@@ -1,5 +1,5 @@
 /* ************************************************************************ */
-/* Georgiev Lab (c) 2015-2016                                               */
+/* Georgiev Lab (c) 2015-2017                                               */
 /* ************************************************************************ */
 /* Department of Cybernetics                                                */
 /* Faculty of Applied Sciences                                              */
@@ -47,163 +47,166 @@ namespace streamlines {
 /* ************************************************************************ */
 
 /**
- * @brief LB units converter.
+ * @brief      LB and physical units converter.
  */
 class Converter
 {
 
 
-// Public Accessors
+// Public Accessors & Mutators
 public:
 
 
     /**
-     * @brief Returns fluid kinematic viscosity.
+     * @brief      Returns fluid kinematic viscosity.
      *
-     * @return
+     * @return     The kinematic viscosity.
      */
-    units::KinematicViscosity getKinematicViscosity() const noexcept
-    {
-        return m_kinematicViscosity;
-    }
+    const units::KinematicViscosity& getKinematicViscosity() const noexcept;
 
 
     /**
-     * @brief Returns characteristic length.
+     * @brief      Set fluid kinematic viscosity.
      *
-     * @return
+     * @param      viscosity  The kinematic viscosity.
      */
-    units::Length getCharLength() const noexcept
-    {
-        return m_charLength;
-    }
+    void setKinematicViscosity(units::KinematicViscosity viscosity) noexcept;
 
 
     /**
-     * @brief Returns characteristic time.
+     * @brief      Returns characteristic length.
      *
-     * @return
+     * @return     The characteristic length.
      */
-    units::Time getCharTime() const noexcept
-    {
-        return m_charTime;
-    }
+    const units::Length& getCharLength() const noexcept;
 
 
     /**
-     * @brief Returns characteristic velocity.
+     * @brief      Set characteristic length.
      *
-     * @return
+     * @param      length  The characteristic length.
      */
-    units::Velocity getCharVelocity() const noexcept
-    {
-        return getCharLength() / getCharTime();
-    }
+    void setCharLength(units::Length length) noexcept;
 
 
     /**
-     * @brief Returns number of nodes in LB along characteristic length.
+     * @brief      Returns characteristic time.
      *
-     * @return
+     * @return     The characteristic time.
      */
-    unsigned int getNumberNodes() const noexcept
-    {
-        return m_numberNodes;
-    }
+    const units::Time& getCharTime() const noexcept;
 
 
     /**
-     * @brief Returns number of time steps in LB for units conversion.
+     * @brief      Set characteristic time.
      *
-     * @return
+     * @param      time  The characteristic time.
      */
-    unsigned int getNumberSteps() const noexcept
-    {
-        return m_numberSteps;
-    }
+    void setCharTime(units::Time time) noexcept;
 
 
     /**
-     * @brief Returns channel height.
+     * @brief      Returns characteristic density.
      *
-     * @return Channel height.
+     * @return     The characteristic density.
      */
-    units::Length getHeight() const noexcept
-    {
-        return m_height;
-    }
-
-
-// Public Mutators
-public:
+    const units::Density& getCharDensity() const noexcept;
 
 
     /**
-     * @brief Set fluid viscosity.
+     * @brief      Set characteristic density.
      *
-     * @param viscosity
+     * @param      density  The characteristic density.
      */
-    void setKinematicViscosity(units::KinematicViscosity viscosity) noexcept
-    {
-        m_kinematicViscosity = viscosity;
-    }
+    void setCharDensity(units::Density density) noexcept;
 
 
     /**
-     * @brief Set characteristic length.
+     * @brief      Returns characteristic velocity.
      *
-     * @param length
+     * @return     The characteristic velocity.
      */
-    void setCharLength(units::Length length) noexcept
-    {
-        m_charLength = length;
-    }
+    units::Velocity getCharVelocity() const noexcept;
 
 
     /**
-     * @brief Set characteristic time.
+     * @brief      Returns number of nodes in LB along characteristic length.
      *
-     * @param time
+     * @return     The number nodes.
      */
-    void setCharTime(units::Time time) noexcept
-    {
-        m_charTime = time;
-    }
+    unsigned int getNumberNodes() const noexcept;
 
 
     /**
-     * @brief Set number of nodes in LB for units conversion.
+     * @brief      Set number of nodes in LB for units conversion.
      *
-     * @param nodes
+     * @param      nodes  The nodes.
      */
-    void setNumberNodes(unsigned int nodes) noexcept
-    {
-        Assert(nodes > 0);
-        m_numberNodes = nodes;
-    }
+    void setNumberNodes(unsigned int nodes) noexcept;
 
 
     /**
-     * @brief Set number of time steps in LB for units conversion.
+     * @brief      Returns number of time steps in LB for units conversion.
      *
-     * @param steps
+     * @return     The number steps.
      */
-    void setNumberSteps(unsigned int steps) noexcept
-    {
-        Assert(steps > 0);
-        m_numberSteps = steps;
-    }
+    unsigned int getNumberSteps() const noexcept;
 
 
     /**
-     * @brief Set channel height.
+     * @brief      Set number of time steps in LB for units conversion.
      *
-     * @param height New height.
+     * @param      steps  The steps.
      */
-    void setHeight(units::Length height) noexcept
-    {
-        m_height = height;
-    }
+    void setNumberSteps(unsigned int steps) noexcept;
+
+
+    /**
+     * @brief      Return length conversion coefficient.
+     *
+     * @return     The length conversion coefficient.
+     */
+    units::Length getLengthCoefficient() const noexcept;
+
+
+    /**
+     * @brief      Return time conversion coefficient.
+     *
+     * @return     The time conversion coefficient.
+     */
+    units::Time getTimeCoefficient() const noexcept;
+
+
+    /**
+     * @brief      Return mass conversion coefficient.
+     *
+     * @return     The mass conversion coefficient.
+     */
+    units::Mass getMassCoefficient() const noexcept;
+
+
+    /**
+     * @brief      Return velocity conversion coefficient.
+     *
+     * @return     The velocity conversion coefficient.
+     */
+    units::Velocity getVelocityCoefficient() const noexcept;
+
+
+    /**
+     * @brief      Return force conversion coefficient.
+     *
+     * @return     The force conversion coefficient.
+     */
+    units::Force getForceCoefficient() const noexcept;
+
+
+    /**
+     * @brief      Return viscosity conversion coefficient.
+     *
+     * @return     The viscosity conversion coefficient.
+     */
+    units::KinematicViscosity getViscosityCoefficient() const noexcept;
 
 
 // Public Operations
@@ -211,205 +214,151 @@ public:
 
 
     /**
-     * @brief Convert length from LB to physical.
+     * @brief      Convert length from LB to physical.
      *
-     * @param length
+     * @param      length  The length in LB units.
      *
-     * @return
+     * @return     Length in physical units.
      */
     units::Length convertLength(RealType length) const noexcept;
 
 
     /**
-     * @brief Convert length from physical to LB.
+     * @brief      Convert length from physical to LB.
      *
-     * @param length
+     * @param      length  The length in physical units.
      *
-     * @return
+     * @return     Length in LB units.
      */
     RealType convertLength(units::Length length) const noexcept;
 
 
     /**
-     * @brief Convert velocity from LB to physical.
+     * @brief      Convert velocity from LB to physical.
      *
-     * @param vel
+     * @param      vel   The velocity in LB units.
      *
-     * @return
+     * @return     Velocity in physical units.
      */
     units::Velocity convertVelocity(RealType vel) const noexcept;
 
 
     /**
-     * @brief Convert velocity from LB to physical.
+     * @brief      Convert velocity vector from LB to physical.
      *
-     * @param vel
+     * @param      vel   The velocity vector in LB units.
      *
-     * @return
+     * @return     Velocity vector in physical units.
      */
     units::VelocityVector convertVelocity(Vector<RealType> vel) const noexcept;
 
 
     /**
-     * @brief Convert velocity from physical to LB.
+     * @brief      Convert velocity from physical to LB.
      *
-     * @param vel
+     * @param      vel   The velocity in physical units.
      *
-     * @return
+     * @return     Velocity in physical units.
      */
     RealType convertVelocity(units::Velocity vel) const noexcept;
 
 
     /**
-     * @brief Convert velocity from physical to LB.
+     * @brief      Convert velocity vector from physical to LB.
      *
-     * @param vel
+     * @param      vel   The velocity vector in physical units.
      *
-     * @return
+     * @return     Velocity vector in physical units.
      */
     Vector<RealType> convertVelocity(units::VelocityVector vel) const noexcept;
 
 
     /**
-     * @brief Convert force from LB to physical.
+     * @brief      Convert force from LB to physical.
      *
-     * @param force
+     * @param      force  The force in LB units.
      *
-     * @return
+     * @return     Force in physical units.
      */
     units::Force convertForce(RealType force) const noexcept;
 
 
     /**
-     * @brief Convert force from LB to physical.
+     * @brief      Convert force vector from LB to physical.
      *
-     * @param force
+     * @param      force  The force vector in LB units.
      *
-     * @return
+     * @return     Force vector in physical units.
      */
     units::ForceVector convertForce(Vector<RealType> force) const noexcept;
 
 
     /**
-     * @brief Convert force from physical to LB.
+     * @brief      Convert force from physical to LB.
      *
-     * @param force
+     * @param      force  The force in physical units.
      *
-     * @return
+     * @return     Force in LB units.
      */
     RealType convertForce(units::Force force) const noexcept;
 
 
     /**
-     * @brief Convert force from physical to LB.
+     * @brief      Convert force vector from physical to LB.
      *
-     * @param force
+     * @param      force  The force vector in physical units.
      *
-     * @return
+     * @return     Force vector in LB units.
      */
     Vector<RealType> convertForce(units::ForceVector force) const noexcept;
 
 
     /**
-     * @brief Calculate viscosity from relaxation time.
+     * @brief      Convert kinematic viscosity from physical to LB.
      *
-     * @return
+     * @param      force  The kinematic viscosity in physical units.
+     *
+     * @return     Kinematic viscosity in LB units.
      */
-    RealType calculateViscosity() const noexcept;
+    RealType convertViscosity(units::KinematicViscosity viscosity) const noexcept;
 
 
     /**
-     * @brief Calculate viscosity from relaxation time.
+     * @brief      Get LB viscosity.
      *
-     * @return
+     * @return     The viscosity.
      */
-    RealType calculateTau() const noexcept;
+    RealType getViscosity() const noexcept;
 
 
     /**
-     * @brief Calculate relaxation frequency.
+     * @brief      Returns relaxation time.
      *
-     * @return
+     * @return     The relaxation time.
      */
-    RealType calculateOmega() const noexcept
-    {
-        return 1.0 / calculateTau();
-    }
+    RealType getTau() const noexcept;
 
 
     /**
-     * @brief Calculate number of time steps from tau.
+     * @brief      Returns relaxation frequency (omega).
      *
-     * @param tau
-     *
-     * @return
+     * @return     The omega.
      */
-    unsigned int calculateNumberSteps(RealType tau) const noexcept;
+    RealType getOmega() const noexcept;
 
 
     /**
-     * @brief Calculate Reynolds number.
+     * @brief      Returns Reynolds number.
      *
-     * @return
+     * @return     The Reynolds number.
      */
-    RealType calculateRe() const noexcept
-    {
-        return getCharLength() * getCharLength() / getCharTime() / getKinematicViscosity();
-    }
-
-
-    /**
-     * @brief Calculate mean velocity from volumeric flow rate.
-     *
-     * @param flow  Volumeric flow rate.
-     * @param width Inlet width.
-     *
-     * @return Mean velocity.
-     *
-     * @note Height is taken from internal value.
-     */
-    units::Velocity calculateVelocity(units::VolumericFlow flow, units::Length width) const noexcept
-    {
-        return calculateVelocity(flow, width * getHeight());
-    }
-
-
-    /**
-     * @brief Calculate mean velocity from volumeric flow rate.
-     *
-     * @param flow Volumeric flow rate.
-     * @param area Flow area.
-     *
-     * @return Mean velocity.
-     *
-     * @note Height is taken from internal value.
-     */
-    units::Velocity calculateVelocity(units::VolumericFlow flow, units::Area area) const noexcept
-    {
-        return flow / area;
-    }
-
-
-    /**
-     * @brief Load module configuration.
-     *
-     * @param config Source configuration.
-     */
-    void loadConfig(const config::Configuration& config);
-
-
-    /**
-     * @brief Store module configuration.
-     *
-     * @param config Output configuration.
-     */
-    void storeConfig(config::Configuration& config) const;
+    RealType getRe() const noexcept;
 
 
 // Private Data Members
 private:
 
-    /// Fluid viscosity (of Water).
+    /// Fluid viscosity (water).
     units::KinematicViscosity m_kinematicViscosity = units::mm2_s(0.658);
 
     /// Characteristic length.
@@ -418,7 +367,7 @@ private:
     /// Characteristic time.
     units::Time m_charTime = units::s(1);
 
-    /// Characteristic density.
+    /// Characteristic density (water).
     units::Density m_charDensity = units::g(1) / units::m3(1e-6);
 
     /// Number of LB nodes for units conversions.
@@ -426,10 +375,255 @@ private:
 
     /// Number of LB time steps for units conversions
     unsigned int m_numberSteps = 1;
-
-    /// Streamlines channel height.
-    units::Length m_height = units::um(1);
 };
+
+/* ************************************************************************ */
+
+}
+}
+}
+
+/* ************************************************************************ */
+/* ************************************************************************ */
+/* ************************************************************************ */
+
+namespace cece {
+namespace plugin {
+namespace streamlines {
+
+/* ************************************************************************ */
+
+inline const units::KinematicViscosity& Converter::getKinematicViscosity() const noexcept
+{
+    return m_kinematicViscosity;
+}
+
+/* ************************************************************************ */
+
+inline void Converter::setKinematicViscosity(units::KinematicViscosity viscosity) noexcept
+{
+    m_kinematicViscosity = std::move(viscosity);
+}
+
+/* ************************************************************************ */
+
+inline const units::Length& Converter::getCharLength() const noexcept
+{
+    return m_charLength;
+}
+
+/* ************************************************************************ */
+
+inline void Converter::setCharLength(units::Length length) noexcept
+{
+    m_charLength = std::move(length);
+}
+
+/* ************************************************************************ */
+
+inline const units::Time& Converter::getCharTime() const noexcept
+{
+    return m_charTime;
+}
+
+/* ************************************************************************ */
+
+inline void Converter::setCharTime(units::Time time) noexcept
+{
+    m_charTime = std::move(time);
+}
+
+/* ************************************************************************ */
+
+inline const units::Density& Converter::getCharDensity() const noexcept
+{
+    return m_charDensity;
+}
+
+/* ************************************************************************ */
+
+inline void Converter::setCharDensity(units::Density density) noexcept
+{
+    m_charDensity = std::move(density);
+}
+
+/* ************************************************************************ */
+
+inline units::Velocity Converter::getCharVelocity() const noexcept
+{
+    return getCharLength() / getCharTime();
+}
+
+/* ************************************************************************ */
+
+inline unsigned int Converter::getNumberNodes() const noexcept
+{
+    return m_numberNodes;
+}
+
+/* ************************************************************************ */
+
+inline void Converter::setNumberNodes(unsigned int nodes) noexcept
+{
+    CECE_ASSERT(nodes > 0);
+    m_numberNodes = nodes;
+}
+
+/* ************************************************************************ */
+
+inline unsigned int Converter::getNumberSteps() const noexcept
+{
+    return m_numberSteps;
+}
+
+/* ************************************************************************ */
+
+inline void Converter::setNumberSteps(unsigned int steps) noexcept
+{
+    CECE_ASSERT(steps > 0);
+    m_numberSteps = steps;
+}
+
+/* ************************************************************************ */
+
+inline units::Length Converter::getLengthCoefficient() const noexcept
+{
+    return getCharLength() / getNumberNodes();
+}
+
+/* ************************************************************************ */
+
+inline units::Time Converter::getTimeCoefficient() const noexcept
+{
+    return getCharTime() / getNumberSteps();
+}
+
+/* ************************************************************************ */
+
+inline units::Mass Converter::getMassCoefficient() const noexcept
+{
+    const auto volume = getLengthCoefficient() * getLengthCoefficient() * getLengthCoefficient();
+    return getCharDensity() * volume;
+}
+
+/* ************************************************************************ */
+
+inline units::Velocity Converter::getVelocityCoefficient() const noexcept
+{
+    return getLengthCoefficient() / getTimeCoefficient();
+}
+
+/* ************************************************************************ */
+
+inline units::Force Converter::getForceCoefficient() const noexcept
+{
+    return getMassCoefficient() * getLengthCoefficient() / (getTimeCoefficient() * getTimeCoefficient());
+}
+
+/* ************************************************************************ */
+
+inline units::KinematicViscosity Converter::getViscosityCoefficient() const noexcept
+{
+    return (getLengthCoefficient() * getLengthCoefficient()) / getTimeCoefficient();
+}
+
+/* ************************************************************************ */
+
+inline units::Length Converter::convertLength(RealType length) const noexcept
+{
+    return getLengthCoefficient() * length;
+}
+
+/* ************************************************************************ */
+
+inline RealType Converter::convertLength(units::Length length) const noexcept
+{
+    return length / getLengthCoefficient();
+}
+
+/* ************************************************************************ */
+
+inline units::Velocity Converter::convertVelocity(RealType vel) const noexcept
+{
+    return getVelocityCoefficient() * vel;
+}
+
+/* ************************************************************************ */
+
+inline units::VelocityVector Converter::convertVelocity(Vector<RealType> vel) const noexcept
+{
+    return getVelocityCoefficient() * vel;
+}
+
+/* ************************************************************************ */
+
+inline RealType Converter::convertVelocity(units::Velocity vel) const noexcept
+{
+    return vel / getVelocityCoefficient();
+}
+
+/* ************************************************************************ */
+
+inline Vector<RealType> Converter::convertVelocity(units::VelocityVector vel) const noexcept
+{
+    return vel / getVelocityCoefficient();
+}
+
+/* ************************************************************************ */
+
+inline units::Force Converter::convertForce(RealType force) const noexcept
+{
+    return getForceCoefficient() * force;
+}
+
+/* ************************************************************************ */
+
+inline units::ForceVector Converter::convertForce(Vector<RealType> force) const noexcept
+{
+    return getForceCoefficient() * force;
+}
+
+/* ************************************************************************ */
+
+inline RealType Converter::convertForce(units::Force force) const noexcept
+{
+    return force / getForceCoefficient();
+}
+
+/* ************************************************************************ */
+
+inline Vector<RealType> Converter::convertForce(units::ForceVector force) const noexcept
+{
+    return force / getForceCoefficient();
+}
+
+/* ************************************************************************ */
+
+inline RealType Converter::convertViscosity(units::KinematicViscosity viscosity) const noexcept
+{
+    return viscosity / getViscosityCoefficient();
+}
+
+/* ************************************************************************ */
+
+inline RealType Converter::getViscosity() const noexcept
+{
+    return convertViscosity(getKinematicViscosity());
+}
+
+/* ************************************************************************ */
+
+inline RealType Converter::getOmega() const noexcept
+{
+    return RealType(1.0) / getTau();
+}
+
+/* ************************************************************************ */
+
+inline RealType Converter::getRe() const noexcept
+{
+    return getCharLength() * getCharLength() / getCharTime() / getKinematicViscosity();
+}
 
 /* ************************************************************************ */
 

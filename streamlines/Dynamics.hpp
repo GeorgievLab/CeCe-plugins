@@ -38,12 +38,12 @@ namespace streamlines {
  */
 enum class Dynamics
 {
-    None,   // No dynamics, data is not used
-    Fluid,  // Fluid dynamics, BGK collision
-    Wall,   // Wall dynamics, Bounce-Back
-    Inlet,  // Inlet dynamics, ZouHe velocity BC
-    Outlet, // Outlet dynamics, ZouHe pressure BC
-    Object  // Moving object dynamics
+    None    = 0,    // No dynamics, data is not used
+    Fluid   = 1,    // Fluid dynamics, BGK collision
+    Wall    = 2,    // Wall dynamics, Bounce-Back
+    Inlet   = 3,    // Inlet dynamics, ZouHe velocity BC
+    Outlet  = 4,    // Outlet dynamics, ZouHe pressure BC
+    Object  = 5     // Moving object dynamics
 };
 
 /* ************************************************************************ */

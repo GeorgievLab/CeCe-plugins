@@ -23,6 +23,11 @@
 #                                                                           #
 # ######################################################################### #
 
+# Find OpenCL
+find_package(OpenCL REQUIRED)
+
+include_directories(${OpenCL_INCLUDE_DIRS})
+
 # Build plugin
 build_plugin(streamlines
     EXPORT_HEADER
@@ -47,6 +52,13 @@ build_plugin(streamlines
         cpu/Lattice.hpp
         cpu/Node.hpp
         cpu/Node.cpp
+
+        # GPU
+        gpu/Lattice.cpp
+        gpu/Lattice.hpp
+
+    LIBRARIES
+        ${OpenCL_LIBRARIES}
 )
 
 # ######################################################################### #

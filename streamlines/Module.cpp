@@ -55,6 +55,7 @@
 
 // Plugin
 #include "cpu/Lattice.hpp"
+#include "gpu/Lattice.hpp"
 
 /* ************************************************************************ */
 
@@ -224,7 +225,18 @@ void Module::init(AtomicBool& flag)
     ) + Lattice::SizeType(1, 1);
 
     // Create a lattice
-    m_lattice = makeUnique<cpu::Lattice>(size, m_converter.getOmega());
+    try
+    {
+        // Try to create GPU lattice
+        m_lattice = makeUnique<gpu::Lattice>(size, m_converter.getOmega());
+    }
+    catch (const Exception& e)
+    {
+        Log::warning("[streamlines] Unable to create GPU (OpenCL) lattice, falling back to CPU: ", e.what());
+
+        // CPU lattice fallback
+        m_lattice = makeUnique<cpu::Lattice>(size, m_converter.getOmega());
+    }
 
     if (m_lattice->getSize() == Zero)
         throw InvalidArgumentException("[streamlines] Zero size lattice");
@@ -560,7 +572,7 @@ void Module::draw(const simulator::Visualization& visualization, render::Context
 void Module::drawStoreState(const simulator::Visualization& visualization)
 {
     const auto size = m_lattice->getSize();
-    const bool drawDynamicsType = visualization.isEnabled(m_render.layerDynamics);
+    const bool drawDynamics = visualization.isEnabled(m_render.layerDynamics);
     const bool drawMagnitude = visualization.isEnabled(m_render.layerMagnitude);
     const bool drawDensity = visualization.isEnabled(m_render.layerDensity);
 
@@ -579,30 +591,30 @@ void Module::drawStoreState(const simulator::Visualization& visualization)
     Descriptor::DensityType rhoMax = 0.0;
     RealType maxVel = 0.0;
 
-    for (auto&& c : range(size))
+    if (drawDynamics || drawMagnitude || drawDensity)
     {
-        if (m_lattice->isFluidDynamics(c))
+        for (auto&& c : range(size))
         {
-            const auto velocity = m_lattice->getVelocity(c);
-            const auto density = m_lattice->getDensity(c);
+            if (m_lattice->isFluidDynamics(c))
+            {
+                const auto velocity = m_lattice->getVelocity(c);
+                const auto density = m_lattice->getDensity(c);
 
-            maxVel = std::max(maxVel, velocity.getLength());
-            rhoMin = std::min(density, rhoMin);
-            rhoMax = std::max(density, rhoMax);
+                maxVel = std::max(maxVel, velocity.getLength());
+                rhoMin = std::min(density, rhoMin);
+                rhoMax = std::max(density, rhoMax);
+            }
         }
     }
 
     // Update texture
     for (auto&& c : range(size))
     {
-        // Cell alias
-        const auto velocity = m_lattice->getVelocity(c);
-        const auto density = m_lattice->getDensity(c);
-        const auto dynamics = m_lattice->getDynamics(c);
-
         // Store dynamics type
-        if (drawDynamicsType)
+        if (drawDynamics)
         {
+            const auto dynamics = m_lattice->getDynamics(c);
+
             render::Color color;
 
             if (dynamics == Dynamics::Fluid)
@@ -632,6 +644,9 @@ void Module::drawStoreState(const simulator::Visualization& visualization)
 
         if (drawMagnitude)
         {
+            const auto velocity = m_lattice->getVelocity(c);
+            const auto dynamics = m_lattice->getDynamics(c);
+
             if (dynamics == Dynamics::Fluid)
             {
                 state.imageMagnitude.set(
@@ -650,6 +665,9 @@ void Module::drawStoreState(const simulator::Visualization& visualization)
 
         if (drawDensity)
         {
+            const auto density = m_lattice->getDensity(c);
+            const auto dynamics = m_lattice->getDynamics(c);
+
             if (dynamics == Dynamics::Fluid)
             {
                 state.imageDensity.set(

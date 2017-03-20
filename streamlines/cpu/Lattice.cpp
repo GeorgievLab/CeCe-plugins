@@ -176,6 +176,8 @@ void Lattice::initDefault()
 
 void Lattice::update(unsigned int count)
 {
+    removeUnreachableDynamics(Dynamics::Wall);
+
     while (count--)
         collideAndStream();
 }
@@ -260,6 +262,45 @@ void Lattice::collideAndStream()
         }
     }
 */
+}
+
+/* ************************************************************************ */
+
+void Lattice::removeUnreachableDynamics(Dynamics dynamics)
+{
+    using Offset = Vector<typename std::make_signed<Descriptor::PopIndexType>::type>;
+
+    static const StaticArray<Offset, 9> OFFSETS{{
+        Offset{ 0,  0},
+        Offset{ 1,  0}, Offset{-1,  0}, Offset{ 0,  1}, Offset{ 1,  1},
+        Offset{-1,  1}, Offset{ 0, -1}, Offset{ 1, -1}, Offset{-1, -1}
+    }};
+
+    // Foreach all cells
+    for (auto&& c : range(getSize()))
+    {
+        if (getDynamics(c) != dynamics)
+            continue;
+
+        bool test = true;
+
+        for (std::size_t i = 0; i < OFFSETS.size(); ++i)
+        {
+            // TODO: simplify
+            Dynamics type = Dynamics::None;
+
+            if (inRange(c + OFFSETS[i]))
+                type = getDynamics(c + OFFSETS[i]);
+
+            test = test && (
+                type == Dynamics::None ||
+                type == dynamics
+            );
+        }
+
+        if (test)
+            setNoneDynamics(c);
+    }
 }
 
 /* ************************************************************************ */

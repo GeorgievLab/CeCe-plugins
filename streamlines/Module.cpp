@@ -822,8 +822,6 @@ void Module::updateDynamics()
         }
     }
 
-    removeUnreachableDynamics(Dynamics::Wall);
-
     // Update boundaries blocks
     updateBoundaries();
 
@@ -1101,45 +1099,6 @@ void Module::updateObjectDynamic(object::Object& object)
 
     // Apply impulse
     object.applyLinearImpulse(impulse);
-}
-
-/* ************************************************************************ */
-
-void Module::removeUnreachableDynamics(Dynamics dynamics)
-{
-    using Offset = Vector<typename std::make_signed<Descriptor::PopIndexType>::type>;
-
-    static const StaticArray<Offset, 9> OFFSETS{{
-        Offset{ 0,  0},
-        Offset{ 1,  0}, Offset{-1,  0}, Offset{ 0,  1}, Offset{ 1,  1},
-        Offset{-1,  1}, Offset{ 0, -1}, Offset{ 1, -1}, Offset{-1, -1}
-    }};
-
-    // Foreach all cells
-    for (auto&& c : range(m_lattice->getSize()))
-    {
-        if (m_lattice->getDynamics(c) != dynamics)
-            continue;
-
-        bool test = true;
-
-        for (std::size_t i = 0; i < OFFSETS.size(); ++i)
-        {
-            // TODO: simplify
-            Dynamics type = Dynamics::None;
-
-            if (m_lattice->inRange(c + OFFSETS[i]))
-                type = m_lattice->getDynamics(c + OFFSETS[i]);
-
-            test = test && (
-                type == Dynamics::None ||
-                type == dynamics
-            );
-        }
-
-        if (test)
-            m_lattice->setNoneDynamics(c);
-    }
 }
 
 /* ************************************************************************ */

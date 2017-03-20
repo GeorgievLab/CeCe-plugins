@@ -293,6 +293,16 @@ private:
     void collideAndStream();
 
 
+    /**
+     * @brief      Remove unreachable dynamics.
+     *
+     * @details    Remove inner wall dynamics.
+     *
+     * @param[in]  dynamics  The dynamics to remove.
+     */
+    void removeUnreachableDynamics(Dynamics dynamics);
+
+
 // Private Data Members
 private:
 

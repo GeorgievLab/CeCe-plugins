@@ -372,16 +372,6 @@ protected:
 
 
     /**
-     * @brief      Remove unreachable dynamics.
-     *
-     * @details    Remove inner wall dynamics.
-     *
-     * @param[in]  dynamics  The dynamics to remove.
-     */
-    void removeUnreachableDynamics(Dynamics dynamics);
-
-
-    /**
      * @brief      Set boundaries to lattice.
      */
     void updateBoundaries();

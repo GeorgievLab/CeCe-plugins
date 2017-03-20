@@ -729,36 +729,7 @@ void Lattice::initDefault()
             &initEvent
         ));
     }
-#if 0
-    {
-        const cl_RealType2 u = {0, 0};
-        const cl_RealType rho = Descriptor::DEFAULT_DENSITY;
 
-        // Set kernel arguments
-        clSetKernelArg(m_initKernel, 0, sizeof(size), &size);
-        clSetKernelArg(m_initKernel, 1, sizeof(u), &u);
-        clSetKernelArg(m_initKernel, 2, sizeof(rho), &rho);
-        clSetKernelArg(m_initKernel, 3, sizeof(m_df2), &m_df2);
-
-        // Enqueue command
-        const StaticArray<size_t, 3> dim = {
-            getSize().getWidth(),
-            getSize().getHeight(),
-            Descriptor::SIZE
-        };
-
-        CL_CHECK(clEnqueueNDRangeKernel(
-            m_commandQueue,
-            m_initKernel,
-            dim.size(),
-            nullptr,
-            dim.data(),
-            nullptr,
-            0, nullptr,
-            &init2Event
-        ));
-    }
-#endif
     // Calculate density and velocity from new dfs
     {
         CL_CHECK(clSetKernelArg(m_syncKernel, 0, sizeof(size), &size));
@@ -847,7 +818,7 @@ void Lattice::update(unsigned int count)
         cl_event streamEvent;
         cl_event bcEvent;
         cl_event syncEvent;
-#if 1
+
         // Collide
         {
             const cl_RealType omega = getOmega();
@@ -875,7 +846,6 @@ void Lattice::update(unsigned int count)
                 &collideEvent
             ));
         }
-#endif
 
         // Stream
         {

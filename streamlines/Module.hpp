@@ -419,6 +419,28 @@ protected:
     std::size_t calculateLatticeHash() const noexcept;
 
 
+    /**
+     * @brief      Create lattice.
+     *
+     * @param[in]  size  The size.
+     */
+    void createLattice(Lattice::SizeType size);
+
+
+// Private Enums
+private:
+
+
+    /**
+     * @brief      Implementation mode.
+     */
+    enum class LatticeMode
+    {
+        GPU,
+        CPU
+    };
+
+
 // Private Structures
 private:
 
@@ -443,6 +465,8 @@ private:
 
     struct
     {
+        LatticeMode mode = LatticeMode::GPU;
+
         /// Number of init iterations.
         IterationType initIterations = 0;
 

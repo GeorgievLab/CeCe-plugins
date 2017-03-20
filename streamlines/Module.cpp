@@ -225,18 +225,7 @@ void Module::init(AtomicBool& flag)
     ) + Lattice::SizeType(1, 1);
 
     // Create a lattice
-    try
-    {
-        // Try to create GPU lattice
-        m_lattice = makeUnique<gpu::Lattice>(size, m_converter.getOmega());
-    }
-    catch (const Exception& e)
-    {
-        Log::warning("[streamlines] Unable to create GPU (OpenCL) lattice, falling back to CPU: ", e.what());
-
-        // CPU lattice fallback
-        m_lattice = makeUnique<cpu::Lattice>(size, m_converter.getOmega());
-    }
+    createLattice(size);
 
     if (m_lattice->getSize() == Zero)
         throw InvalidArgumentException("[streamlines] Zero size lattice");
@@ -259,7 +248,11 @@ void Module::init(AtomicBool& flag)
     Log::info("[streamlines] Viscosity: ", m_converter.getViscosity());
 
     if (m_converter.getTau() > 5.0)
-        Log::warning("[streamlines] Relaxation parameter Tau is too large and can cause unexpected behaviour");
+    {
+        Log::warning("[streamlines] Relaxation parameter Tau is too large, unwanted behaviour can be observed. "
+            "Increase number of time steps or decrease viscosity."
+        );
+    }
 
     if (m_converter.getViscosity() == 0.0)
         Log::warning("[streamlines] Zero viscosity means unstable simulation");
@@ -359,6 +352,15 @@ void Module::loadConfig(const config::Configuration& config)
 {
     // Configure parent
     module::Module::loadConfig(config);
+
+    {
+        const auto mode = config.get("mode");
+
+        if (mode == "gpu")
+            m_config.mode = LatticeMode::GPU;
+        if (mode == "cpu")
+            m_config.mode = LatticeMode::CPU;
+    }
 
     // Set streamlines dynamicity
     setDynamic(config.get("dynamic", isDynamic()));
@@ -1435,6 +1437,31 @@ std::size_t Module::calculateLatticeHash() const noexcept
     }
 
     return hash;
+}
+
+/* ************************************************************************ */
+
+void Module::createLattice(Lattice::SizeType size)
+{
+    if (m_config.mode == LatticeMode::CPU)
+    {
+        m_lattice = makeUnique<cpu::Lattice>(size, m_converter.getOmega());
+    }
+    else
+    {
+        try
+        {
+            // Try to create GPU lattice
+            m_lattice = makeUnique<gpu::Lattice>(size, m_converter.getOmega());
+        }
+        catch (const Exception& e)
+        {
+            Log::warning("[streamlines] Unable to create GPU (OpenCL) lattice, falling back to CPU: ", e.what());
+
+            // CPU lattice fallback
+            m_lattice = makeUnique<cpu::Lattice>(size, m_converter.getOmega());
+        }
+    }
 }
 
 /* ************************************************************************ */

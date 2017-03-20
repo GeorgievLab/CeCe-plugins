@@ -81,13 +81,13 @@ void ExportModule::init()
     {
         writeHeader(
             "iteration", "totalTime", "x", "y", "vx", "vy", "rho",
-            "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8"
+            "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "dynamics"
         );
     }
     else
     {
         writeHeader(
-            "iteration", "totalTime", "x", "y", "vx", "vy", "rho"
+            "iteration", "totalTime", "x", "y", "vx", "vy", "rho", "dynamics"
         );
     }
 }
@@ -108,6 +108,7 @@ void ExportModule::update()
 
         const auto vel = m_module->getVelocity(c);
         const auto p = m_module->getPressure(c);
+        const int dynamics = static_cast<int>(m_module->getDynamics(c));
 
         if (isPopulationsExported())
         {
@@ -129,7 +130,8 @@ void ExportModule::update()
                 data[5],
                 data[6],
                 data[7],
-                data[8]
+                data[8],
+                dynamics
             );
         }
         else
@@ -141,7 +143,8 @@ void ExportModule::update()
                 c.getY(),
                 vel.getX().value(),
                 vel.getY().value(),
-                p.value()
+                p.value(),
+                dynamics
             );
         }
     }

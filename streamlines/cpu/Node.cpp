@@ -222,7 +222,7 @@ void Node::setInletDynamics(BoundaryPosition position, VelocityType velocity) no
 
 void Node::setOutletDynamics(BoundaryPosition position, DensityType density) noexcept
 {
-    m_dynamics = Dynamics::Inlet;
+    m_dynamics = Dynamics::Outlet;
     m_data.outlet.position = position;
     m_data.outlet.density = density;
 }

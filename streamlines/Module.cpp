@@ -217,12 +217,19 @@ Module::~Module() = default;
 
 /* ************************************************************************ */
 
-void Module::init(AtomicBool& flag)
+Lattice::SizeType Module::getLatticeSize() const noexcept
 {
-    // Calculate lattice size
-    const auto size = Lattice::SizeType(
+    return Lattice::SizeType(
         getSimulation().getWorldSize() / m_converter.getCharLength() * m_converter.getNumberNodes()
     ) + Lattice::SizeType(1, 1);
+}
+
+/* ************************************************************************ */
+
+void Module::init(AtomicBool& flag)
+{
+    // Get calculated lattice size
+    const auto size = getLatticeSize();
 
     // Create a lattice
     createLattice(size);
@@ -354,7 +361,7 @@ void Module::loadConfig(const config::Configuration& config)
     module::Module::loadConfig(config);
 
     {
-        const auto mode = config.get("mode");
+        const auto mode = config.get("mode", String("gpu"));
 
         if (mode == "gpu")
             m_config.mode = LatticeMode::GPU;
@@ -607,82 +614,82 @@ void Module::drawStoreState(const simulator::Visualization& visualization)
                 rhoMax = std::max(density, rhoMax);
             }
         }
-    }
 
-    // Update texture
-    for (auto&& c : range(size))
-    {
-        // Store dynamics type
-        if (drawDynamics)
+        // Update texture
+        for (auto&& c : range(size))
         {
-            const auto dynamics = m_lattice->getDynamics(c);
-
-            render::Color color;
-
-            if (dynamics == Dynamics::Fluid)
+            // Store dynamics type
+            if (drawDynamics)
             {
-                color = render::colors::BLACK;
+                const auto dynamics = m_lattice->getDynamics(c);
+
+                render::Color color;
+
+                if (dynamics == Dynamics::Fluid)
+                {
+                    color = render::colors::BLACK;
+                }
+                else if (dynamics == Dynamics::Inlet)
+                {
+                    color = render::colors::RED;
+                }
+                else if (dynamics == Dynamics::Outlet)
+                {
+                    color = render::colors::BLUE;
+                }
+                else if (dynamics == Dynamics::None)
+                {
+                    color = render::colors::WHITE;
+                }
+                else
+                {
+                    color = render::colors::GREEN;
+                }
+
+                // Store color
+                state.imageDynamics.set(c, color);
             }
-            else if (dynamics == Dynamics::Inlet)
+
+            if (drawMagnitude)
             {
-                color = render::colors::RED;
-            }
-            else if (dynamics == Dynamics::Outlet)
-            {
-                color = render::colors::BLUE;
-            }
-            else if (dynamics == Dynamics::None)
-            {
-                color = render::colors::WHITE;
-            }
-            else
-            {
-                color = render::colors::GREEN;
+                const auto velocity = m_lattice->getVelocity(c);
+                const auto dynamics = m_lattice->getDynamics(c);
+
+                if (dynamics == Dynamics::Fluid)
+                {
+                    state.imageMagnitude.set(
+                        c,
+                        render::Color::fromGray(velocity.getLength() / maxVel)
+                    );
+                }
+                else
+                {
+                    render::Color color = render::colors::BLACK;
+                    color.setAlpha(0);
+
+                    state.imageMagnitude.set(c, color);
+                }
             }
 
-            // Store color
-            state.imageDynamics.set(c, color);
-        }
-
-        if (drawMagnitude)
-        {
-            const auto velocity = m_lattice->getVelocity(c);
-            const auto dynamics = m_lattice->getDynamics(c);
-
-            if (dynamics == Dynamics::Fluid)
+            if (drawDensity)
             {
-                state.imageMagnitude.set(
-                    c,
-                    render::Color::fromGray(velocity.getLength() / maxVel)
-                );
-            }
-            else
-            {
-                render::Color color = render::colors::BLACK;
-                color.setAlpha(0);
+                const auto density = m_lattice->getDensity(c);
+                const auto dynamics = m_lattice->getDynamics(c);
 
-                state.imageMagnitude.set(c, color);
-            }
-        }
+                if (dynamics == Dynamics::Fluid)
+                {
+                    state.imageDensity.set(
+                        c,
+                        render::Color::fromGray((density - rhoMin) / (rhoMax - rhoMin))
+                    );
+                }
+                else
+                {
+                    render::Color color = render::colors::BLACK;
+                    color.setAlpha(0);
 
-        if (drawDensity)
-        {
-            const auto density = m_lattice->getDensity(c);
-            const auto dynamics = m_lattice->getDynamics(c);
-
-            if (dynamics == Dynamics::Fluid)
-            {
-                state.imageDensity.set(
-                    c,
-                    render::Color::fromGray((density - rhoMin) / (rhoMax - rhoMin))
-                );
-            }
-            else
-            {
-                render::Color color = render::colors::BLACK;
-                color.setAlpha(0);
-
-                state.imageDensity.set(c, color);
+                    state.imageDensity.set(c, color);
+                }
             }
         }
     }

@@ -31,10 +31,16 @@ const char PROGRAM[] = R"%(
 
 /* ************************************************************************ */
 
-__constant float SPEED_OF_SOUND_SQ = 1.0f / 3.0f;
-__constant float SPEED_OF_SOUND_SQ_INV = 3.0f;
-__constant float2 DIRS[DF_SIZE] = {{ 0,  0}, {-1,  1}, {-1,  0}, {-1, -1}, { 0, -1}, { 1, -1}, { 1,  0}, { 1,  1}, { 0,  1}};
-__constant float WEIGHTS[DF_SIZE] = {4.0f / 9.0f, 1.0f / 36.0f, 1.0f / 9.0f, 1.0f / 36.0f, 1.0f / 9.0f, 1.0f / 36.0f, 1.0f / 9.0f, 1.0f / 36.0f, 1.0f / 9.0f};
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+typedef double real_type;
+typedef double2 real_type2;
+
+/* ************************************************************************ */
+
+__constant real_type SPEED_OF_SOUND_SQ = 1.0f / 3.0f;
+__constant real_type SPEED_OF_SOUND_SQ_INV = 3.0f;
+__constant real_type2 DIRS[DF_SIZE] = {{ 0,  0}, {-1,  1}, {-1,  0}, {-1, -1}, { 0, -1}, { 1, -1}, { 1,  0}, { 1,  1}, { 0,  1}};
+__constant real_type WEIGHTS[DF_SIZE] = {4.0f / 9.0f, 1.0f / 36.0f, 1.0f / 9.0f, 1.0f / 36.0f, 1.0f / 9.0f, 1.0f / 36.0f, 1.0f / 9.0f, 1.0f / 36.0f, 1.0f / 9.0f};
 __constant int OPPOSITE[DF_SIZE] = {0, 5, 6, 7, 8, 1, 2, 3, 4};
 
 /* ************************************************************************ */
@@ -60,7 +66,7 @@ __constant int ZOUHE_UNKNOWN_RHO[4][3] = {
     {1, 8, 7}
 };
 
-__constant float2 ZOUHE_VELOCITIES[4] = {
+__constant real_type2 ZOUHE_VELOCITIES[4] = {
     {-1,  0},
     { 1,  0},
     { 0, -1},
@@ -123,7 +129,7 @@ struct WallData { };
 struct InletData
 {
     int position;
-    float2 velocity;
+    real_type2 velocity;
 };
 
 /* ************************************************************************ */
@@ -132,7 +138,7 @@ struct InletData
 struct OutletData
 {
     int position;
-    float density;
+    real_type density;
 };
 
 /* ************************************************************************ */
@@ -140,7 +146,7 @@ struct OutletData
 /// Object dynamics data
 struct ObjectData
 {
-    float2 velocity;
+    real_type2 velocity;
 };
 
 /* ************************************************************************ */
@@ -180,11 +186,11 @@ int calc_df_offset(const int2 size, int x, int y, int iPop)
 /* ************************************************************************ */
 
 // Calculate equilibrium
-float calc_eq(const float2 u, const float rho, const int iPop)
+real_type calc_eq(const real_type2 u, const real_type rho, const int iPop)
 {
-    const float vu = dot(DIRS[iPop], u);
-    const float uLen = length(u);
-    const float uSqLen = uLen * uLen;
+    const real_type vu = dot(DIRS[iPop], u);
+    const real_type uLen = length(u);
+    const real_type uSqLen = uLen * uLen;
 
     return rho * WEIGHTS[iPop] * (
           1.0f
@@ -201,10 +207,10 @@ void collideFluid(
     const int2 size,
     const int x,
     const int y,
-    const float2 velocity,
-    const float density,
-    const float omega,
-    __global float* df
+    const real_type2 velocity,
+    const real_type density,
+    const real_type omega,
+    __global real_type* df
 )
 {
     for (int iPop = 0; iPop < DF_SIZE; iPop++)
@@ -212,7 +218,7 @@ void collideFluid(
         const int iF = calc_df_offset(size, x, y, iPop);
 
         // Calculate equilibrium distribution
-        const float feq = calc_eq(velocity, density, iPop);
+        const real_type feq = calc_eq(velocity, density, iPop);
 
         // Collide
         df[iF] += -omega * (df[iF] - feq);
@@ -222,14 +228,14 @@ void collideFluid(
 /* ************************************************************************ */
 
 // Collide wall node
-void collideWall(
+void boundaryWall(
     const int2 size,
     const int x,
     const int y,
-    __global float* df
+    __global real_type* df
 )
 {
-    float tmp[9];
+    real_type tmp[9];
 
     for (int iPop = 1; iPop < 9; iPop++)
     {
@@ -250,7 +256,7 @@ void collideWall(
 /* ************************************************************************ */
 
 // Equilibrium difference
-float calc_eq_diff(float2 velocity, float density, int iPop)
+real_type calc_eq_diff(real_type2 velocity, real_type density, int iPop)
 {
     return
         calc_eq(velocity, density, iPop) -
@@ -260,15 +266,18 @@ float calc_eq_diff(float2 velocity, float density, int iPop)
 
 /* ************************************************************************ */
 
-float calc_df_diff(const int2 size, __global const float* df, int iPop, int i)
+real_type calc_df_diff(__global const real_type* df, int idx, int idxOpp)
 {
-    return df[calc_df_base(size, iPop) + i] - df[calc_df_base(size, OPPOSITE[iPop]) + i];
+    return
+        df[idx] -
+        df[idxOpp]
+    ;
 }
 
 /* ************************************************************************ */
 
 // Sum of 3 df values
-float calc_sum_df_3(const int2 size, __global const float* df, int i, int iPop1, int iPop2, int iPop3)
+real_type calc_sum_df_3(const int2 size, __global const real_type* df, int i, int iPop1, int iPop2, int iPop3)
 {
     return
         df[calc_df_base(size, iPop1) + i] +
@@ -283,9 +292,9 @@ float calc_sum_df_3(const int2 size, __global const float* df, int i, int iPop1,
 void zou_he_init(
     const int2 size,
     int position,
-    __global float* df,
-    float2 velocity,
-    float density,
+    __global real_type* df,
+    real_type2 velocity,
+    real_type density,
     const int i
 )
 {
@@ -295,11 +304,11 @@ void zou_he_init(
     const int side2_0 = ZOUHE_BC_SIDE2[position][0];
     const int side2_1 = ZOUHE_BC_SIDE2[position][1];
 
-    const int center_opp  = OPPOSITE[ZOUHE_BC_CENTER[position]];
-    const int side1_0_opp = OPPOSITE[ZOUHE_BC_SIDE1[position][0]];
-    const int side1_1_opp = OPPOSITE[ZOUHE_BC_SIDE1[position][1]];
-    const int side2_0_opp = OPPOSITE[ZOUHE_BC_SIDE2[position][0]];
-    const int side2_1_opp = OPPOSITE[ZOUHE_BC_SIDE2[position][1]];
+    const int center_opp  = OPPOSITE[center];
+    const int side1_0_opp = OPPOSITE[side1_0];
+    const int side1_1_opp = OPPOSITE[side1_1];
+    const int side2_0_opp = OPPOSITE[side2_0];
+    const int side2_1_opp = OPPOSITE[side2_1];
 
     const int center_i  = calc_df_base(size, center) + i;
     const int side1_0_i = calc_df_base(size, side1_0) + i;
@@ -321,13 +330,13 @@ void zou_he_init(
     // Side 1
     df[side1_0_i] = df[side1_0_opp_i]
         + calc_eq_diff(velocity, density, side1_0)
-        + 0.5 * calc_df_diff(size, df, side1_1, i)
+        + 0.5 * calc_df_diff(df, side1_1_i, side1_1_opp_i)
     ;
 
     // Side 2
     df[side2_0_i] = df[side2_0_opp_i]
         + calc_eq_diff(velocity, density, side2_0)
-        + 0.5 * calc_df_diff(size, df, side2_1, i)
+        + 0.5 * calc_df_diff(df, side2_1_i, side2_1_opp_i)
     ;
 }
 
@@ -335,28 +344,28 @@ void zou_he_init(
 
 void boundaryInlet(
     const int2 size,
-    __global float* df,
+    __global real_type* df,
     const struct Data data,
     const int i
 )
 {
     const int position = data.inlet.position;
 
-    const float center = calc_sum_df_3(size, df, i,
+    const real_type center = calc_sum_df_3(size, df, i,
         ZOUHE_CENTER_RHO[position][0],
         ZOUHE_CENTER_RHO[position][1],
         ZOUHE_CENTER_RHO[position][2]
     );
 
-    const float known  = calc_sum_df_3(size, df, i,
+    const real_type known  = calc_sum_df_3(size, df, i,
         ZOUHE_KNOWN_RHO[position][0],
         ZOUHE_KNOWN_RHO[position][1],
         ZOUHE_KNOWN_RHO[position][2]
     );
 
-    const float velP = dot(data.inlet.velocity, ZOUHE_VELOCITIES[position]);
+    const real_type velP = dot(data.inlet.velocity, ZOUHE_VELOCITIES[position]);
 
-    const float density = 1.0f / (1.0f - velP) * (center + 2.0f * known);
+    const real_type density = 1.0f / (1.0f - velP) * (center + 2.0f * known);
 
     zou_he_init(size, position, df, data.inlet.velocity, density, i);
 }
@@ -365,30 +374,30 @@ void boundaryInlet(
 
 void boundaryOutlet(
     const int2 size,
-    __global float* df,
+    __global real_type* df,
     const struct Data data,
     const int i
 )
 {
-    const int position = data.inlet.position;
+    const int position = data.outlet.position;
 
-    const float center = calc_sum_df_3(size, df, i,
+    const real_type center = calc_sum_df_3(size, df, i,
         ZOUHE_CENTER_RHO[position][0],
         ZOUHE_CENTER_RHO[position][1],
         ZOUHE_CENTER_RHO[position][2]
     );
 
-    const float known  = calc_sum_df_3(size, df, i,
+    const real_type known  = calc_sum_df_3(size, df, i,
         ZOUHE_KNOWN_RHO[position][0],
         ZOUHE_KNOWN_RHO[position][1],
         ZOUHE_KNOWN_RHO[position][2]
     );
 
     // Speed
-    const float speed = (1.0f - 1.0f / data.outlet.density * (center + 2.0f * known));
+    const real_type speed = (1.0f - 1.0f / data.outlet.density * (center + 2.0f * known));
 
     // Velocity vector
-    const float2 velocity = speed * ZOUHE_VELOCITIES[position];
+    const real_type2 velocity = speed * ZOUHE_VELOCITIES[position];
 
     zou_he_init(size, position, df, velocity, data.outlet.density, i);
 }
@@ -396,7 +405,7 @@ void boundaryOutlet(
 /* ************************************************************************ */
 
 // Init
-__kernel void init(const int2 size, const float2 u, const float rho, __global float* df)
+__kernel void init(const int2 size, const real_type2 u, const real_type rho, __global real_type* df)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
@@ -412,11 +421,11 @@ __kernel void init(const int2 size, const float2 u, const float rho, __global fl
 // Collide df
 __kernel void collide(
     const int2 size,
-    __global const float2* u,
-    __global const float* rho,
-    __global float* df,
+    __global const real_type2* u,
+    __global const real_type* rho,
+    __global real_type* df,
     __global const struct Data* data,
-    const float omega
+    const real_type omega
 )
 {
     const int x = get_global_id(0);
@@ -434,10 +443,6 @@ __kernel void collide(
     case Dynamics_Outlet:
         collideFluid(size, x, y, u[i], rho[i], omega, df);
         break;
-
-    case Dynamics_Wall:
-        collideWall(size, x, y, df);
-        break;
     }
 }
 
@@ -446,8 +451,8 @@ __kernel void collide(
 // Stream df
 __kernel void stream(
     const int2 size,
-    __global const float* fin,
-    __global float* fout
+    __global const real_type* fin,
+    __global real_type* fout
 )
 {
     const int x = get_global_id(0);
@@ -479,7 +484,7 @@ __kernel void stream(
 // Collide df
 __kernel void bc(
     const int2 size,
-    __global float* df,
+    __global real_type* df,
     __global const struct Data* data
 )
 {
@@ -498,6 +503,10 @@ __kernel void bc(
         boundaryOutlet(size, df, data[i], i);
         break;
 
+    case Dynamics_Wall:
+        boundaryWall(size, x, y, df);
+        break;
+
     default:
         break;
     }
@@ -508,9 +517,9 @@ __kernel void bc(
 // Synchronize df, velocity and density
 __kernel void sync(
     const int2 size,
-    __global const float* df,
-    __global float2* u,
-    __global float* rho,
+    __global const real_type* df,
+    __global real_type2* u,
+    __global real_type* rho,
     __global const struct Data* data
 )
 {
@@ -519,17 +528,17 @@ __kernel void sync(
 
     const int i = calc_offset(size, x, y);
 
-    if (data[i].dynamics == Dynamics_Wall)
-        return;
+    //if (data[i].dynamics == Dynamics_Wall)
+    //    return;
 
-    float ux = 0;
-    float uy = 0;
-    float r = 0;
+    real_type ux = 0;
+    real_type uy = 0;
+    real_type r = 0;
 
     for (int iPop = 0; iPop < DF_SIZE; iPop++)
     {
         const int iF = calc_df_offset(size, x, y, iPop);
-        const float fVal = df[iF];
+        const real_type fVal = df[iF];
 
         ux = ux + fVal * DIRS[iPop].x;
         uy = uy + fVal * DIRS[iPop].y;

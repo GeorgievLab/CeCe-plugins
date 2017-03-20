@@ -67,6 +67,16 @@ public:
         Bottom = 3
     };
 
+// Public Types
+public:
+
+
+    /// Real type used for computation.
+    using cl_RealType = cl_double;
+
+    /// Real type 2D vector used for computation.
+    using cl_RealType2 = cl_double2;
+
 
 // Public Ctors & Dtors
 public:
@@ -276,20 +286,20 @@ private:
     struct InletData
     {
         cl_int position;
-        cl_float2 velocity;
+        cl_RealType2 velocity;
     };
 
     /// Outlet dynamics data
     struct OutletData
     {
         cl_int position;
-        cl_float density;
+        cl_RealType density;
     };
 
     /// Object dynamics data
     struct ObjectData
     {
-        cl_float2 velocity;
+        cl_RealType2 velocity;
     };
 
     /// Dynamics data
@@ -362,13 +372,13 @@ private:
     cl_mem m_data = nullptr;
 
     /// Local distribution functions.
-    mutable LocalBuffer<cl_float> m_dfLocal;
+    mutable LocalBuffer<cl_RealType> m_dfLocal;
 
     /// Local velocities.
-    mutable LocalBuffer<cl_float2> m_velocityLocal;
+    mutable LocalBuffer<cl_RealType2> m_velocityLocal;
 
     /// Local densities.
-    mutable LocalBuffer<cl_float> m_densityLocal;
+    mutable LocalBuffer<cl_RealType> m_densityLocal;
 
     /// Local data.
     mutable LocalBuffer<Data> m_dataLocal;

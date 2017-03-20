@@ -616,15 +616,9 @@ inline void Module::setDynamic(bool flag)
 
 /* ************************************************************************ */
 
-inline Lattice::SizeType Module::getLatticeSize() const noexcept
-{
-    return m_lattice->getSize();
-}
-
-/* ************************************************************************ */
-
 inline bool Module::inLatticeRange(Coordinate coord) const noexcept
 {
+    CECE_ASSERT(m_lattice);
     return m_lattice->inRange(coord);
 }
 
@@ -632,6 +626,7 @@ inline bool Module::inLatticeRange(Coordinate coord) const noexcept
 
 inline units::VelocityVector Module::getVelocity(Coordinate coord) const
 {
+    CECE_ASSERT(m_lattice);
     return m_converter.convertVelocity(m_lattice->getVelocity(coord));
 }
 
@@ -639,6 +634,7 @@ inline units::VelocityVector Module::getVelocity(Coordinate coord) const
 
 inline void Module::setVelocity(Coordinate coord, units::VelocityVector velocity)
 {
+    CECE_ASSERT(m_lattice);
     m_lattice->setVelocity(coord, m_converter.convertVelocity(velocity));
 }
 
@@ -646,6 +642,7 @@ inline void Module::setVelocity(Coordinate coord, units::VelocityVector velocity
 
 inline Pressure Module::getPressure(Coordinate coord) const
 {
+    CECE_ASSERT(m_lattice);
     return Pressure(m_lattice->getDensity(coord));
 }
 
@@ -660,6 +657,7 @@ inline Dynamics Module::getDynamics(Coordinate coord) const
 
 inline Lattice::DistributionsType Module::getDistributions(Coordinate coord) const
 {
+    CECE_ASSERT(m_lattice);
     return m_lattice->getDistributions(coord);
 }
 

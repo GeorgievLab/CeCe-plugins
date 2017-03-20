@@ -258,11 +258,11 @@ cl_int coordToBcPosition(Lattice::SizeType size, Lattice::CoordinateType coord)
 {
     if (coord.getX() == 0)
         return static_cast<cl_int>(Lattice::BoundaryPosition::Left);
-    else if (coord.getX() == size.getX() - 1)
+    else if (coord.getX() == size.getWidth() - 1)
         return static_cast<cl_int>(Lattice::BoundaryPosition::Right);
     else if (coord.getY() == 0)
         return static_cast<cl_int>(Lattice::BoundaryPosition::Top);
-    else if (coord.getY() == size.getY() - 1)
+    else if (coord.getY() == size.getHeight() - 1)
         return static_cast<cl_int>(Lattice::BoundaryPosition::Bottom);
 
     throw RuntimeException("Unknown boundary position");
@@ -346,11 +346,11 @@ Lattice::Lattice(SizeType size, RealType omega)
         const size_t size = Descriptor::SIZE * getSize().getWidth() * getSize().getHeight();
 
         // GPU buffer
-        m_df = clCreateBuffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_float) * size, nullptr, &ret);
+        m_df = clCreateBuffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_RealType) * size, nullptr, &ret);
         CL_CHECK_RET(ret);
 
         // GPU buffer
-        m_df2 = clCreateBuffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_float) * size, nullptr, &ret);
+        m_df2 = clCreateBuffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_RealType) * size, nullptr, &ret);
         CL_CHECK_RET(ret);
 
         // Local buffer
@@ -363,7 +363,7 @@ Lattice::Lattice(SizeType size, RealType omega)
         const size_t size = getSize().getWidth() * getSize().getHeight();
 
         // GPU buffer
-        m_velocity = clCreateBuffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_float2) * size, nullptr, &ret);
+        m_velocity = clCreateBuffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_RealType2) * size, nullptr, &ret);
         CL_CHECK_RET(ret);
 
         // Local buffer
@@ -378,7 +378,7 @@ Lattice::Lattice(SizeType size, RealType omega)
         Log::debug("[streamlines] Create density buffer");
 
         // GPU buffer
-        m_density = clCreateBuffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_float) * size, nullptr, &ret);
+        m_density = clCreateBuffer(m_context, CL_MEM_READ_WRITE, sizeof(cl_RealType) * size, nullptr, &ret);
         CL_CHECK_RET(ret);
 
         // Local buffer
@@ -475,7 +475,7 @@ Lattice::VelocityType Lattice::getVelocity(CoordinateType coord) const noexcept
             m_velocity,
             CL_TRUE,
             0,
-            size * sizeof(cl_float2),
+            size * sizeof(cl_RealType2),
             m_velocityLocal.buffer.data(),
             0, nullptr, nullptr
         ));
@@ -513,7 +513,7 @@ Lattice::DensityType Lattice::getDensity(CoordinateType coord) const noexcept
             m_density,
             CL_TRUE,
             0,
-            size * sizeof(cl_float),
+            size * sizeof(cl_RealType),
             m_densityLocal.buffer.data(),
             0, nullptr, nullptr
         ));
@@ -558,7 +558,7 @@ Lattice::DistributionsType Lattice::getDistributions(CoordinateType coord) const
             m_df,
             CL_TRUE,
             0,
-            size * sizeof(cl_float),
+            size * sizeof(cl_RealType),
             m_dfLocal.buffer.data(),
             0, nullptr, nullptr
         ));
@@ -651,8 +651,8 @@ void Lattice::setInletDynamics(CoordinateType coord, VelocityType velocity) noex
     data.dynamics = static_cast<cl_int>(Dynamics::Inlet);
     data.inlet.position = coordToBcPosition(getSize(), coord);
     data.inlet.velocity = {
-        static_cast<cl_float>(velocity.getX()),
-        static_cast<cl_float>(velocity.getY())
+        static_cast<cl_RealType>(velocity.getX()),
+        static_cast<cl_RealType>(velocity.getY())
     };
 
     m_dataLocal.dirty = true;
@@ -698,11 +698,12 @@ void Lattice::initDefault()
     };
 
     cl_event initEvent;
+    cl_event init2Event;
     cl_event syncEvent;
 
     {
-        const cl_float2 u = {0, 0};
-        const cl_float rho = Descriptor::DEFAULT_DENSITY;
+        const cl_RealType2 u = {0, 0};
+        const cl_RealType rho = Descriptor::DEFAULT_DENSITY;
 
         // Set kernel arguments
         clSetKernelArg(m_initKernel, 0, sizeof(size), &size);
@@ -728,7 +729,36 @@ void Lattice::initDefault()
             &initEvent
         ));
     }
+#if 0
+    {
+        const cl_RealType2 u = {0, 0};
+        const cl_RealType rho = Descriptor::DEFAULT_DENSITY;
 
+        // Set kernel arguments
+        clSetKernelArg(m_initKernel, 0, sizeof(size), &size);
+        clSetKernelArg(m_initKernel, 1, sizeof(u), &u);
+        clSetKernelArg(m_initKernel, 2, sizeof(rho), &rho);
+        clSetKernelArg(m_initKernel, 3, sizeof(m_df2), &m_df2);
+
+        // Enqueue command
+        const StaticArray<size_t, 3> dim = {
+            getSize().getWidth(),
+            getSize().getHeight(),
+            Descriptor::SIZE
+        };
+
+        CL_CHECK(clEnqueueNDRangeKernel(
+            m_commandQueue,
+            m_initKernel,
+            dim.size(),
+            nullptr,
+            dim.data(),
+            nullptr,
+            0, nullptr,
+            &init2Event
+        ));
+    }
+#endif
     // Calculate density and velocity from new dfs
     {
         CL_CHECK(clSetKernelArg(m_syncKernel, 0, sizeof(size), &size));
@@ -756,9 +786,12 @@ void Lattice::initDefault()
 
     // Insert barrier so any following command must wait to initialization
     {
+        //StaticArray<cl_event, 2> events{syncEvent, init2Event};
+        StaticArray<cl_event, 1> events{syncEvent};
+
         CL_CHECK(clEnqueueBarrierWithWaitList(
             m_commandQueue,
-            1, &syncEvent,
+            events.size(), events.data(),
             nullptr
         ));
     }
@@ -812,10 +845,10 @@ void Lattice::update(unsigned int count)
         cl_event streamEvent;
         cl_event bcEvent;
         cl_event syncEvent;
-
+#if 1
         // Collide
         {
-            const cl_float omega = getOmega();
+            const cl_RealType omega = getOmega();
 
             CL_CHECK(clSetKernelArg(m_collideKernel, 0, sizeof(size), &size));
             CL_CHECK(clSetKernelArg(m_collideKernel, 1, sizeof(m_velocity), &m_velocity));
@@ -840,6 +873,7 @@ void Lattice::update(unsigned int count)
                 &collideEvent
             ));
         }
+#endif
 
         // Stream
         {
@@ -861,6 +895,7 @@ void Lattice::update(unsigned int count)
                 dim.data(),
                 nullptr,
                 1, &collideEvent,
+                //0, nullptr,
                 &streamEvent
             ));
         }
@@ -887,6 +922,8 @@ void Lattice::update(unsigned int count)
                 dim.data(),
                 nullptr,
                 1, &streamEvent,
+                //1, &collideEvent,
+                //0, nullptr,
                 &bcEvent
             ));
         }
@@ -912,6 +949,7 @@ void Lattice::update(unsigned int count)
                 dim.data(),
                 nullptr,
                 1, &bcEvent,
+                //1, &collideEvent,
                 &syncEvent
             ));
         }
@@ -922,6 +960,10 @@ void Lattice::update(unsigned int count)
             nullptr
         ));
     }
+
+    m_dfLocal.dirty = true;
+    m_velocityLocal.dirty = true;
+    m_densityLocal.dirty = true;
 
     // Wait to finish
     CL_CHECK(clFinish(m_commandQueue));
@@ -942,7 +984,7 @@ void Lattice::uploadDf()
             m_df,
             CL_FALSE,
             0,
-            size * sizeof(cl_float),
+            size * sizeof(cl_RealType),
             m_dfLocal.buffer.data(),
             0,
             nullptr,

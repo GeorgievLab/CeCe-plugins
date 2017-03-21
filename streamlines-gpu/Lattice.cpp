@@ -158,12 +158,12 @@ const char* clMessage(cl_int err) noexcept
  *
  * @return     The platform information.
  */
-std::string getPlatformInfo(cl_platform_id platform, cl_platform_info info)
+String getPlatformInfo(cl_platform_id platform, cl_platform_info info)
 {
     size_t size;
     CL_CHECK(CL_CALL(clGetPlatformInfo)(platform, info, 0, nullptr, &size));
 
-    std::vector<char> buffer(size);
+    DynamicArray<char> buffer(size);
 
     CL_CHECK(CL_CALL(clGetPlatformInfo)(platform, info, size, buffer.data(), nullptr));
 
@@ -230,7 +230,7 @@ cl_device_id chooseDevice(cl_platform_id platform)
  * @param[in]  cb            The private information size.
  * @param      user_data     The user data.
  */
-void error_callback(const char* error, const void* private_info, size_t cb, void* user_data)
+void CL_CALLBACK error_callback(const char* error, const void* private_info, size_t cb, void* user_data)
 {
     Log::error("[streamlines] OpenCL error: ", error);
 }
@@ -371,7 +371,7 @@ Lattice::Lattice(SizeType size, RealType omega)
                 &len
             );
 
-            std::string log(len, '\0');
+            String log(len, '\0');
             CL_CALL(clGetProgramBuildInfo)(
                 m_program,
                 m_device,

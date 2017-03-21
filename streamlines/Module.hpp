@@ -317,6 +317,12 @@ public:
     void update() override;
 
 
+    /**
+     * @brief      Terminate module.
+     */
+    void terminate() override;
+
+
 #ifdef CECE_RENDER
 
     /**

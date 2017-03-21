@@ -56,7 +56,6 @@
 // Plugin
 #include "FactoryManager.hpp"
 #include "cpu/Lattice.hpp"
-#include "gpu/Lattice.hpp"
 
 /* ************************************************************************ */
 
@@ -211,9 +210,6 @@ Module::Module(simulator::Simulation& simulation)
 {
     // Register CPU builder
     FactoryManager::getInstance().createForLattice<cpu::Lattice>("cpu");
-
-    // Register GPU builder
-    FactoryManager::getInstance().createForLattice<gpu::Lattice>("gpu");
 }
 
 /* ************************************************************************ */
@@ -491,6 +487,13 @@ void Module::update()
 
     // Update simulation objects
     updateObjects();
+}
+
+/* ************************************************************************ */
+
+void Module::terminate()
+{
+    m_lattice.reset();
 }
 
 /* ************************************************************************ */

@@ -32,6 +32,7 @@
 #include "cece/core/Units.hpp"
 #include "cece/core/UnitsCtors.hpp"
 #include "cece/core/Vector.hpp"
+#include "cece/core/Pair.hpp"
 #include "cece/core/Units.hpp"
 #include "cece/core/Grid.hpp"
 #include "cece/core/Real.hpp"
@@ -159,6 +160,26 @@ public:
      * @return     The boundaries.
      */
     const DynamicArray<Boundary>& getBoundaries() const noexcept;
+
+
+    /**
+     * @brief      Find boundary by name.
+     *
+     * @param[in]  name  The boundary name.
+     *
+     * @return     Pointer to boundary or nullptr.
+     */
+    ViewPtr<const Boundary> findBoundary(StringView name) const noexcept;
+
+
+    /**
+     * @brief      Obtain boundary blocks where real inlet or outlet is.
+     *
+     * @param[in]  name  The boundary name.
+     *
+     * @return     A list of blocks.
+     */
+    DynamicArray<Pair<units::PositionVector, units::PositionVector>> getBoundaryBlocks(StringView name) const noexcept;
 
 
     /**

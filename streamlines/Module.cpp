@@ -217,6 +217,141 @@ Module::~Module() = default;
 
 /* ************************************************************************ */
 
+ViewPtr<const Boundary> Module::findBoundary(StringView name) const noexcept
+{
+    auto it = std::find_if(m_config.boundaries.begin(), m_config.boundaries.end(), [&](const Boundary& b) {
+        return b.getName() == name;
+    });
+
+    if (it != m_config.boundaries.end())
+        return &*it;
+
+    return nullptr;
+}
+
+/* ************************************************************************ */
+
+DynamicArray<Pair<units::PositionVector, units::PositionVector>>
+Module::getBoundaryBlocks(StringView name) const noexcept
+{
+    auto boundary = findBoundary(name);
+
+    // No boundary with that name
+    if (boundary == nullptr)
+        return {};
+
+    DynamicArray<Pair<units::PositionVector, units::PositionVector>> res;
+
+    // No valid boundary type
+    if (boundary->getType() == Boundary::Type::None)
+        return {};
+
+    const auto gridSize = m_lattice->getSize();
+    const auto offset = m_converter.convertLength(boundary->getOffset());
+    const auto size = m_converter.convertLength(boundary->getSize());
+
+    const units::PositionVector start = getSimulation().getWorldSize() * -0.5;
+
+    switch (boundary->getPosition())
+    {
+    case Boundary::Position::Top:
+    {
+        // Boundary block
+        const auto block = getBoundaryBlock(offset, size, gridSize.getWidth());
+
+        auto coordFn = [&](int i) {
+            return Lattice::CoordinateType(i, gridSize.getHeight() - 1);
+        };
+
+        // Top edge
+        const auto blocks = detectBoundaryBlocks(*m_lattice, block, coordFn);
+
+        for (auto block : blocks)
+        {
+            const auto pos1 = start + m_converter.convertLength(Vector<RealType>(coordFn(block.first())));
+            const auto pos2 = start + m_converter.convertLength(Vector<RealType>(coordFn(block.last())));
+
+            res.push_back({pos1, pos2});
+        }
+
+        break;
+    }
+
+    case Boundary::Position::Bottom:
+    {
+        // Boundary block
+        const auto block = getBoundaryBlock(offset, size, gridSize.getWidth());
+
+        auto coordFn = [&](int i) {
+            return Lattice::CoordinateType(i, 0);
+        };
+
+        // Bottom edge
+        const auto blocks = detectBoundaryBlocks(*m_lattice, block, coordFn);
+
+        for (auto block : blocks)
+        {
+            const auto pos1 = start + m_converter.convertLength(Vector<RealType>(coordFn(block.first())));
+            const auto pos2 = start + m_converter.convertLength(Vector<RealType>(coordFn(block.last())));
+
+            res.push_back({pos1, pos2});
+        }
+
+        break;
+    }
+
+    case Boundary::Position::Left:
+    {
+        // Boundary block
+        const auto block = getBoundaryBlock(offset, size, gridSize.getHeight());
+
+        auto coordFn = [&](int i) {
+            return Lattice::CoordinateType(0, i);
+        };
+
+        // Left edge
+        const auto blocks = detectBoundaryBlocks(*m_lattice, block, coordFn);
+
+        for (auto block : blocks)
+        {
+            const auto pos1 = start + m_converter.convertLength(Vector<RealType>(coordFn(block.first())));
+            const auto pos2 = start + m_converter.convertLength(Vector<RealType>(coordFn(block.last())));
+
+            res.push_back({pos1, pos2});
+        }
+
+        break;
+    }
+
+    case Boundary::Position::Right:
+    {
+        // Boundary block
+        const auto block = getBoundaryBlock(offset, size, gridSize.getHeight());
+
+        auto coordFn = [&](int i) {
+            return Lattice::CoordinateType(gridSize.getWidth() - 1, i);
+        };
+
+        // Right edge
+        const auto blocks = detectBoundaryBlocks(*m_lattice, block, coordFn);
+
+        for (auto block : blocks)
+        {
+            const auto pos1 = start + m_converter.convertLength(Vector<RealType>(coordFn(block.first())));
+            const auto pos2 = start + m_converter.convertLength(Vector<RealType>(coordFn(block.last())));
+
+            res.push_back({pos1, pos2});
+        }
+
+        break;
+    }
+    }
+
+    return res;
+}
+
+/* ************************************************************************ */
+
 Lattice::SizeType Module::getLatticeSize() const noexcept
 {
     return Lattice::SizeType(

@@ -142,14 +142,11 @@ void Module::init()
     if (!m_module)
         throw RuntimeException("[object-streamlines-generator] 'streamlines' module not found");
 
-    // Get boundaries
-    const auto& boundaries = m_module->getBoundaries();
-
     // Check generator objects
     for (const auto& desc : m_objects)
     {
         // Find boundary
-        auto boundary = boundaries.find(desc.boundary);
+        const auto boundary = m_module->findBoundary(desc.boundary);
 
         if (!boundary)
         {
@@ -168,12 +165,6 @@ void Module::init()
             Log::warning("[object-streamlines-generator] Boundary '", desc.boundary, "' have zero flow rate");
             continue;
         }
-
-        if (boundary->getBlocks().empty())
-        {
-            Log::warning("[object-streamlines-generator] Boundary '" + boundary->getName() + "' with no blocks");
-            continue;
-        }
     }
 }
 
@@ -190,11 +181,6 @@ void Module::update()
     const auto worldSize = simulation.getWorldSize();
     const auto worldSizeH = worldSize * 0.5;
 
-    // Get boundaries
-    CECE_ASSERT(m_module);
-    const auto& boundaries = m_module->getBoundaries();
-    const auto& converter = m_module->getConverter();
-
     const units::PositionVector start = worldSize * -0.5;
     const auto step = getSimulation().getWorldSize() / m_module->getLatticeSize();
 
@@ -206,9 +192,17 @@ void Module::update()
             continue;
 
         // Find boundary
-        auto boundary = boundaries.find(desc.boundary);
+        CECE_ASSERT(m_module);
+        auto boundary = m_module->findBoundary(desc.boundary);
 
         if (!boundary)
+            continue;
+
+        // Get boundary blocks
+        const auto& blocks = m_module->getBoundaryBlocks(desc.boundary);
+
+        // No blocks
+        if (blocks.empty())
             continue;
 
         // Calculate spawn rate
@@ -229,12 +223,6 @@ void Module::update()
         // Total number of spawned objects
         int count = baseCount + (distSpawn(g_gen) ? 1 : 0);
 
-        // Get inlet blocks
-        const auto& blocks = boundary->getBlocks();
-
-        if (blocks.empty())
-            continue;
-
         // Distrbution for block selection
         std::uniform_int_distribution<> blockDis(0, blocks.size() - 1);
 
@@ -252,34 +240,30 @@ void Module::update()
             units::Length yMin = Zero;
             units::Length yMax = Zero;
 
-            // Block size
-            const auto blockSize = converter.convertLength(block.first());
-            const auto fix = blockSize * 0.1;
-
             switch (position)
             {
             case streamlines::Boundary::Position::Top:
                 yMin = yMax = worldSizeH.getY() - desc.offset;
-                xMin = converter.convertLength(block.first()) + fix - worldSizeH.getX();
-                xMax = converter.convertLength(block.last()) - fix - worldSizeH.getX();
+                xMin = block.first.getX();
+                xMax = block.second.getX();
                 break;
 
             case streamlines::Boundary::Position::Bottom:
                 yMin = yMax = -(worldSizeH.getY() - desc.offset);
-                xMin = converter.convertLength(block.first()) + fix - worldSizeH.getX();
-                xMax = converter.convertLength(block.last()) - fix - worldSizeH.getX();
+                xMin = block.first.getX();
+                xMax = block.second.getX();
                 break;
 
             case streamlines::Boundary::Position::Right:
                 xMin = xMax = worldSizeH.getX() - desc.offset;
-                yMin = converter.convertLength(block.first()) + fix - worldSizeH.getY();
-                yMax = converter.convertLength(block.last()) - fix - worldSizeH.getY();
+                yMin = block.first.getY();
+                yMax = block.second.getY();
                 break;
 
             case streamlines::Boundary::Position::Left:
                 xMin = xMax = -(worldSizeH.getX() - desc.offset);
-                yMin = converter.convertLength(block.first()) + fix - worldSizeH.getY();
-                yMax = converter.convertLength(block.last()) - fix - worldSizeH.getY();
+                yMin = block.first.getY();
+                yMax = block.second.getY();
                 break;
 
             default:

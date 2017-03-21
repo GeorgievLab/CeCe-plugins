@@ -89,7 +89,7 @@ set(CECE_PLUGINS_STANDARD
     python
     stochastic-reactions
     streamlines
-    streamlines-channel
+#    streamlines-channel
     streamlines-python
     xml
 )

@@ -224,6 +224,16 @@ public:
 
 
     /**
+     * @brief      Convert length vector from LB to physical.
+     *
+     * @param      length  The length vector in LB units.
+     *
+     * @return     Length vector in physical units.
+     */
+    units::PositionVector convertLength(Vector<RealType> position) const noexcept;
+
+
+    /**
      * @brief      Convert length from physical to LB.
      *
      * @param      length  The length in physical units.
@@ -231,6 +241,16 @@ public:
      * @return     Length in LB units.
      */
     RealType convertLength(units::Length length) const noexcept;
+
+
+    /**
+     * @brief      Convert length vector from physical to LB.
+     *
+     * @param      length  The length vector in physical units.
+     *
+     * @return     Length vector in LB units.
+     */
+    Vector<RealType> convertLength(units::PositionVector position) const noexcept;
 
 
     /**
@@ -536,9 +556,23 @@ inline units::Length Converter::convertLength(RealType length) const noexcept
 
 /* ************************************************************************ */
 
+inline units::PositionVector Converter::convertLength(Vector<RealType> position) const noexcept
+{
+    return getLengthCoefficient() * position;
+}
+
+/* ************************************************************************ */
+
 inline RealType Converter::convertLength(units::Length length) const noexcept
 {
     return length / getLengthCoefficient();
+}
+
+/* ************************************************************************ */
+
+inline Vector<RealType> Converter::convertLength(units::PositionVector position) const noexcept
+{
+    return position / getLengthCoefficient();
 }
 
 /* ************************************************************************ */

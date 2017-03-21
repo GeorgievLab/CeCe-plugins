@@ -124,7 +124,7 @@ public:
             return nullptr;
         }
 
-        if (module->getDynamics(coord) == module->getWallDynamics())
+        if (module->getDynamics(coord) == plugin::streamlines::Dynamics::Wall)
             Py_RETURN_TRUE;
         else
             Py_RETURN_FALSE;
@@ -165,10 +165,7 @@ public:
             return nullptr;
         }
 
-        if (flag)
-            module->setDynamics(coord, module->getWallDynamics());
-        else
-            module->setDynamics(coord, module->getFluidDynamics());
+        // TODO: implement
 
         return none().release();
     }

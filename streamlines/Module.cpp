@@ -54,6 +54,7 @@
 #include "cece/simulator/Visualization.hpp"
 
 // Plugin
+#include "FactoryManager.hpp"
 #include "cpu/Lattice.hpp"
 #include "gpu/Lattice.hpp"
 
@@ -208,7 +209,11 @@ void setBoundaryBlocks(
 Module::Module(simulator::Simulation& simulation)
     : module::Module(simulation)
 {
-    // Nothing to do
+    // Register CPU builder
+    FactoryManager::getInstance().createForLattice<cpu::Lattice>("cpu");
+
+    // Register GPU builder
+    FactoryManager::getInstance().createForLattice<gpu::Lattice>("gpu");
 }
 
 /* ************************************************************************ */
@@ -495,14 +500,8 @@ void Module::loadConfig(const config::Configuration& config)
     // Configure parent
     module::Module::loadConfig(config);
 
-    {
-        const auto mode = config.get("mode", String("gpu"));
-
-        if (mode == "gpu")
-            m_config.mode = LatticeMode::GPU;
-        if (mode == "cpu")
-            m_config.mode = LatticeMode::CPU;
-    }
+    // Lattice mode
+    m_config.mode = config.get("mode", m_config.mode);
 
     // Set streamlines dynamicity
     setDynamic(config.get("dynamic", isDynamic()));
@@ -1544,25 +1543,20 @@ std::size_t Module::calculateLatticeHash() const noexcept
 
 void Module::createLattice(Lattice::SizeType size)
 {
-    if (m_config.mode == LatticeMode::CPU)
+    try
     {
-        m_lattice = makeUnique<cpu::Lattice>(size, m_converter.getOmega());
+        // Try to create user selected lattice type
+        m_lattice = FactoryManager::getInstance().createLattice(m_config.mode, size, m_converter.getOmega());
     }
-    else
+    catch (const Exception& e)
     {
-        try
-        {
-            // Try to create GPU lattice
-            m_lattice = makeUnique<gpu::Lattice>(size, m_converter.getOmega());
-        }
-        catch (const Exception& e)
-        {
-            Log::warning("[streamlines] Unable to create GPU (OpenCL) lattice, falling back to CPU: ", e.what());
+        Log::warning("[streamlines] Unable to create GPU (OpenCL) lattice, falling back to CPU: ", e.what());
 
-            // CPU lattice fallback
-            m_lattice = makeUnique<cpu::Lattice>(size, m_converter.getOmega());
-        }
+        // CPU lattice fallback
+        m_lattice = FactoryManager::getInstance().createLattice("cpu", size, m_converter.getOmega());
     }
+
+    CECE_ASSERT(m_lattice);
 }
 
 /* ************************************************************************ */

@@ -46,6 +46,10 @@ build_plugin(streamlines
         Boundary.cpp
         Converter.hpp
         Converter.cpp
+        Factory.hpp
+        Factory.cpp
+        FactoryManager.hpp
+        FactoryManager.cpp
 
         # CPU
         cpu/Lattice.cpp

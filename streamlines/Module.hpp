@@ -36,6 +36,7 @@
 #include "cece/core/Units.hpp"
 #include "cece/core/Grid.hpp"
 #include "cece/core/Real.hpp"
+#include "cece/core/Map.hpp"
 #include "cece/core/StaticArray.hpp"
 #include "cece/core/UniquePtr.hpp"
 #include "cece/core/OutStream.hpp"
@@ -59,6 +60,7 @@
 #include "Lattice.hpp"
 #include "Converter.hpp"
 #include "Descriptor.hpp"
+#include "Factory.hpp"
 
 /* ************************************************************************ */
 
@@ -438,20 +440,6 @@ protected:
     void createLattice(Lattice::SizeType size);
 
 
-// Private Enums
-private:
-
-
-    /**
-     * @brief      Implementation mode.
-     */
-    enum class LatticeMode
-    {
-        GPU,
-        CPU
-    };
-
-
 // Private Structures
 private:
 
@@ -476,7 +464,7 @@ private:
 
     struct
     {
-        LatticeMode mode = LatticeMode::GPU;
+        String mode = "cpu";
 
         /// Number of init iterations.
         IterationType initIterations = 0;

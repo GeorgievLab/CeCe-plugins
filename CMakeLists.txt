@@ -89,6 +89,7 @@ set(CECE_PLUGINS_STANDARD
     python
     stochastic-reactions
     streamlines
+    streamlines-gpu
 #    streamlines-channel
     streamlines-python
     xml

@@ -67,6 +67,10 @@ void library_init()
 {
 #if __linux__
     g_library = dlopen("libOpenCL.so", RTLD_LAZY);
+
+    if (g_library == nullptr)
+        g_library = dlopen("libOpenCL.so.1", RTLD_LAZY);
+
 #elif __APPLE__ && __MACH__
     g_library = dlopen("libOpenCL.dylib", RTLD_LAZY);
 #elif _WIN32
@@ -75,6 +79,38 @@ void library_init()
     SetThreadErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX, &oldMode);
     g_library = LoadLibraryW(L"OpenCL.dll");
     SetThreadErrorMode(oldMode, NULL);
+#endif
+
+#if __linux__ || __APPLE__ && __MACH__
+    if (g_library == nullptr)
+        throw RuntimeException(dlerror());
+#elif _WIN32
+    if (g_library == nullptr)
+    {
+        // Get error message
+        const auto err = ::GetLastError();
+        if (err == 0)
+            return {};
+
+        LPSTR buffer = nullptr;
+        auto size = FormatMessageA(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL, err, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), (LPSTR)&buffer, 0, NULL
+        );
+
+        // Remove trailing new lines.
+        while (size > 0 && (buffer[size - 1] == '\r' || buffer[size - 1] == '\n'))
+        {
+            --size;
+        }
+
+        String message(buffer, size);
+
+        // Free the buffer
+        LocalFree(buffer);
+
+        throw RuntimeException(message);
+    }
 #endif
 
     // Assign

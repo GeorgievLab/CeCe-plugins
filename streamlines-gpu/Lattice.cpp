@@ -64,16 +64,6 @@ namespace {
 
 /* ************************************************************************ */
 
-#ifndef OPENCL_STATIC
-struct LibraryWrapper
-{
-    LibraryWrapper() { library_init(); }
-    ~LibraryWrapper() { library_free(); }
-} g_library;
-#endif
-
-/* ************************************************************************ */
-
 // OpenCL program
 #include "program.hpp"
 
@@ -307,9 +297,14 @@ cl_int coordToBcPosition(Lattice::SizeType size, Lattice::CoordinateType coord)
 
 Lattice::Lattice(SizeType size, RealType omega)
     : streamlines::Lattice(size, omega)
-    , m_platform(choosePlatform())
-    , m_device(chooseDevice(m_platform))
 {
+#ifndef OPENCL_STATIC
+    library_init();
+#endif
+
+    m_platform = choosePlatform();
+    m_device = chooseDevice(m_platform);
+
     // Create OpenCL context
     {
         cl_int ret;
@@ -543,6 +538,10 @@ Lattice::~Lattice()
 
     if (m_context)
         CL_CALL(clReleaseContext)(m_context);
+
+#ifndef OPENCL_STATIC
+    library_free();
+#endif
 }
 
 /* ************************************************************************ */

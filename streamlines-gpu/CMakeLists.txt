@@ -34,6 +34,7 @@ if (OpenCL_FOUND)
     set(SOURCES)
 else ()
     set(LIBRARIES)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR})
     set(SOURCES library.hpp library.cpp)
 endif ()
 

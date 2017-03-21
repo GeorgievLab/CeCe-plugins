@@ -212,7 +212,7 @@ void Module::update()
         const auto number = rate * simulation.getTimeStep();
 
         // Number of created with 100% probability
-        const auto baseCount = std::floor(number);
+        const int baseCount = std::floor(number);
 
         // Probability of the remaining object
         const auto probability = number - baseCount;

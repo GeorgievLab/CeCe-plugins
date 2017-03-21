@@ -54,84 +54,84 @@ Lattice::Lattice(SizeType size, RealType omega)
 
 /* ************************************************************************ */
 
-Dynamics Lattice::getDynamics(CoordinateType coord) const noexcept
+Dynamics Lattice::getDynamics(CoordinateType coord) const
 {
     return m_data[coord].getDynamics();
 }
 
 /* ************************************************************************ */
 
-Lattice::VelocityType Lattice::getVelocity(CoordinateType coord) const noexcept
+Lattice::VelocityType Lattice::getVelocity(CoordinateType coord) const
 {
     return m_data[coord].computeVelocity();
 }
 
 /* ************************************************************************ */
 
-void Lattice::setVelocity(CoordinateType coord, VelocityType velocity) noexcept
+void Lattice::setVelocity(CoordinateType coord, VelocityType velocity)
 {
     return m_data[coord].defineVelocity(velocity);
 }
 
 /* ************************************************************************ */
 
-Lattice::DensityType Lattice::getDensity(CoordinateType coord) const noexcept
+Lattice::DensityType Lattice::getDensity(CoordinateType coord) const
 {
     return m_data[coord].computeDensity();
 }
 
 /* ************************************************************************ */
 
-void Lattice::setDensity(CoordinateType coord, DensityType density) noexcept
+void Lattice::setDensity(CoordinateType coord, DensityType density)
 {
     return m_data[coord].defineDensity(density);
 }
 
 /* ************************************************************************ */
 
-void Lattice::setVelocityDensity(CoordinateType coord, VelocityType velocity, DensityType density) noexcept
+void Lattice::setVelocityDensity(CoordinateType coord, VelocityType velocity, DensityType density)
 {
     return m_data[coord].initEquilibrium(velocity, density);
 }
 
 /* ************************************************************************ */
 
-Lattice::DistributionsType Lattice::getDistributions(CoordinateType coord) const noexcept
+Lattice::DistributionsType Lattice::getDistributions(CoordinateType coord) const
 {
     return m_data[coord].getDistributions();
 }
 
 /* ************************************************************************ */
 
-void Lattice::setDistributions(CoordinateType coord, DistributionsType distributions) noexcept
+void Lattice::setDistributions(CoordinateType coord, DistributionsType distributions)
 {
     m_data[coord].setDistributions(distributions);
 }
 
 /* ************************************************************************ */
 
-void Lattice::setNoneDynamics(CoordinateType coord) noexcept
+void Lattice::setNoneDynamics(CoordinateType coord)
 {
     m_data[coord].setNoneDynamics();
 }
 
 /* ************************************************************************ */
 
-void Lattice::setFluidDynamics(CoordinateType coord) noexcept
+void Lattice::setFluidDynamics(CoordinateType coord)
 {
     m_data[coord].setFluidDynamics();
 }
 
 /* ************************************************************************ */
 
-void Lattice::setWallDynamics(CoordinateType coord) noexcept
+void Lattice::setWallDynamics(CoordinateType coord)
 {
     m_data[coord].setWallDynamics();
 }
 
 /* ************************************************************************ */
 
-void Lattice::setInletDynamics(CoordinateType coord, VelocityType velocity) noexcept
+void Lattice::setInletDynamics(CoordinateType coord, VelocityType velocity)
 {
     if (coord.getX() == 0)
         m_data[coord].setInletDynamics(Node::BoundaryPosition::Left, velocity);
@@ -145,7 +145,7 @@ void Lattice::setInletDynamics(CoordinateType coord, VelocityType velocity) noex
 
 /* ************************************************************************ */
 
-void Lattice::setOutletDynamics(CoordinateType coord, DensityType density) noexcept
+void Lattice::setOutletDynamics(CoordinateType coord, DensityType density)
 {
     if (coord.getX() == 0)
         m_data[coord].setOutletDynamics(Node::BoundaryPosition::Left, density);
@@ -159,7 +159,7 @@ void Lattice::setOutletDynamics(CoordinateType coord, DensityType density) noexc
 
 /* ************************************************************************ */
 
-void Lattice::setObjectDynamics(CoordinateType coord, VelocityType velocity) noexcept
+void Lattice::setObjectDynamics(CoordinateType coord, VelocityType velocity)
 {
     m_data[coord].setObjectDynamics(velocity);
 }

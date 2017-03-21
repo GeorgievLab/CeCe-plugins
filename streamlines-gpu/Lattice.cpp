@@ -546,7 +546,7 @@ Lattice::~Lattice()
 
 /* ************************************************************************ */
 
-streamlines::Dynamics Lattice::getDynamics(CoordinateType coord) const noexcept
+streamlines::Dynamics Lattice::getDynamics(CoordinateType coord) const
 {
     // Dynamics cannot be changed by GPU, so we can access directly the CPU
     // memory.
@@ -560,7 +560,7 @@ streamlines::Dynamics Lattice::getDynamics(CoordinateType coord) const noexcept
 
 /* ************************************************************************ */
 
-Lattice::VelocityType Lattice::getVelocity(CoordinateType coord) const noexcept
+Lattice::VelocityType Lattice::getVelocity(CoordinateType coord) const
 {
     if (m_velocityLocal.dirty)
     {
@@ -591,14 +591,14 @@ Lattice::VelocityType Lattice::getVelocity(CoordinateType coord) const noexcept
 
 /* ************************************************************************ */
 
-void Lattice::setVelocity(CoordinateType coord, VelocityType velocity) noexcept
+void Lattice::setVelocity(CoordinateType coord, VelocityType velocity)
 {
 
 }
 
 /* ************************************************************************ */
 
-Lattice::DensityType Lattice::getDensity(CoordinateType coord) const noexcept
+Lattice::DensityType Lattice::getDensity(CoordinateType coord) const
 {
     if (m_densityLocal.dirty)
     {
@@ -629,21 +629,21 @@ Lattice::DensityType Lattice::getDensity(CoordinateType coord) const noexcept
 
 /* ************************************************************************ */
 
-void Lattice::setDensity(CoordinateType coord, DensityType density) noexcept
+void Lattice::setDensity(CoordinateType coord, DensityType density)
 {
 
 }
 
 /* ************************************************************************ */
 
-void Lattice::setVelocityDensity(CoordinateType coord, VelocityType velocity, DensityType density) noexcept
+void Lattice::setVelocityDensity(CoordinateType coord, VelocityType velocity, DensityType density)
 {
 
 }
 
 /* ************************************************************************ */
 
-Lattice::DistributionsType Lattice::getDistributions(CoordinateType coord) const noexcept
+Lattice::DistributionsType Lattice::getDistributions(CoordinateType coord) const
 {
     if (m_dfLocal.dirty)
     {
@@ -682,7 +682,7 @@ Lattice::DistributionsType Lattice::getDistributions(CoordinateType coord) const
 
 /* ************************************************************************ */
 
-void Lattice::setDistributions(CoordinateType coord, DistributionsType distributions) noexcept
+void Lattice::setDistributions(CoordinateType coord, DistributionsType distributions)
 {
     CECE_ASSERT(inRange(coord));
 
@@ -698,7 +698,7 @@ void Lattice::setDistributions(CoordinateType coord, DistributionsType distribut
 
 /* ************************************************************************ */
 
-void Lattice::setNoneDynamics(CoordinateType coord) noexcept
+void Lattice::setNoneDynamics(CoordinateType coord)
 {
     CECE_ASSERT(inRange(coord));
 
@@ -712,7 +712,7 @@ void Lattice::setNoneDynamics(CoordinateType coord) noexcept
 
 /* ************************************************************************ */
 
-void Lattice::setFluidDynamics(CoordinateType coord) noexcept
+void Lattice::setFluidDynamics(CoordinateType coord)
 {
     CECE_ASSERT(inRange(coord));
 
@@ -726,7 +726,7 @@ void Lattice::setFluidDynamics(CoordinateType coord) noexcept
 
 /* ************************************************************************ */
 
-void Lattice::setWallDynamics(CoordinateType coord) noexcept
+void Lattice::setWallDynamics(CoordinateType coord)
 {
     CECE_ASSERT(inRange(coord));
 
@@ -740,7 +740,7 @@ void Lattice::setWallDynamics(CoordinateType coord) noexcept
 
 /* ************************************************************************ */
 
-void Lattice::setInletDynamics(CoordinateType coord, VelocityType velocity) noexcept
+void Lattice::setInletDynamics(CoordinateType coord, VelocityType velocity)
 {
     CECE_ASSERT(inRange(coord));
 
@@ -759,7 +759,7 @@ void Lattice::setInletDynamics(CoordinateType coord, VelocityType velocity) noex
 
 /* ************************************************************************ */
 
-void Lattice::setOutletDynamics(CoordinateType coord, DensityType density) noexcept
+void Lattice::setOutletDynamics(CoordinateType coord, DensityType density)
 {
     CECE_ASSERT(inRange(coord));
 
@@ -775,7 +775,7 @@ void Lattice::setOutletDynamics(CoordinateType coord, DensityType density) noexc
 
 /* ************************************************************************ */
 
-void Lattice::setObjectDynamics(CoordinateType coord, VelocityType velocity) noexcept
+void Lattice::setObjectDynamics(CoordinateType coord, VelocityType velocity)
 {
     CECE_ASSERT(inRange(coord));
 
@@ -797,7 +797,6 @@ void Lattice::initDefault()
     };
 
     cl_event initEvent;
-    cl_event init2Event;
     cl_event syncEvent;
 
     {

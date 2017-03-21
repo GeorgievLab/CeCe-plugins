@@ -127,7 +127,7 @@ public:
      *
      * @return     The dynamics.
      */
-    virtual Dynamics getDynamics(CoordinateType coord) const noexcept = 0;
+    virtual Dynamics getDynamics(CoordinateType coord) const = 0;
 
 
     /**
@@ -137,7 +137,7 @@ public:
      *
      * @return     The velocity.
      */
-    virtual VelocityType getVelocity(CoordinateType coord) const noexcept = 0;
+    virtual VelocityType getVelocity(CoordinateType coord) const = 0;
 
 
     /**
@@ -149,7 +149,7 @@ public:
      * @param[in]  coord     The coordinate.
      * @param[in]  velocity  The velocity.
      */
-    virtual void setVelocity(CoordinateType coord, VelocityType velocity) noexcept = 0;
+    virtual void setVelocity(CoordinateType coord, VelocityType velocity) = 0;
 
 
     /**
@@ -159,7 +159,7 @@ public:
      *
      * @return     The density.
      */
-    virtual DensityType getDensity(CoordinateType coord) const noexcept = 0;
+    virtual DensityType getDensity(CoordinateType coord) const = 0;
 
 
     /**
@@ -171,7 +171,7 @@ public:
      * @param[in]  coord    The coordinate.
      * @param[in]  density  The density.
      */
-    virtual void setDensity(CoordinateType coord, DensityType density) noexcept = 0;
+    virtual void setDensity(CoordinateType coord, DensityType density) = 0;
 
 
     /**
@@ -184,7 +184,7 @@ public:
      * @param[in]  velocity  The velocity.
      * @param[in]  density   The density.
      */
-    virtual void setVelocityDensity(CoordinateType coord, VelocityType velocity, DensityType density) noexcept = 0;
+    virtual void setVelocityDensity(CoordinateType coord, VelocityType velocity, DensityType density) = 0;
 
 
     /**
@@ -194,7 +194,7 @@ public:
      *
      * @return     The distribution functions.
      */
-    virtual DistributionsType getDistributions(CoordinateType coord) const noexcept = 0;
+    virtual DistributionsType getDistributions(CoordinateType coord) const = 0;
 
 
     /**
@@ -203,7 +203,7 @@ public:
      * @param[in]  coord          The coordinate.
      * @param[in]  distributions  The distribution functions.
      */
-    virtual void setDistributions(CoordinateType coord, DistributionsType distributions) noexcept = 0;
+    virtual void setDistributions(CoordinateType coord, DistributionsType distributions) = 0;
 
 
     /**
@@ -213,7 +213,7 @@ public:
      *
      * @return     True if is fluid, False otherwise.
      */
-    bool isNoneDynamics(CoordinateType coord) const noexcept;
+    bool isNoneDynamics(CoordinateType coord) const;
 
 
     /**
@@ -223,7 +223,7 @@ public:
      *
      * @return     True if is fluid, False otherwise.
      */
-    bool isFluidDynamics(CoordinateType coord) const noexcept;
+    bool isFluidDynamics(CoordinateType coord) const;
 
 
     /**
@@ -233,7 +233,7 @@ public:
      *
      * @return     True if is wall, False otherwise.
      */
-    bool isWallDynamics(CoordinateType coord) const noexcept;
+    bool isWallDynamics(CoordinateType coord) const;
 
 
     /**
@@ -243,7 +243,7 @@ public:
      *
      * @return     True if is inlet, False otherwise.
      */
-    bool isInletDynamics(CoordinateType coord) const noexcept;
+    bool isInletDynamics(CoordinateType coord) const;
 
 
     /**
@@ -253,7 +253,7 @@ public:
      *
      * @return     True if is outlet, False otherwise.
      */
-    bool isOutletDynamics(CoordinateType coord) const noexcept;
+    bool isOutletDynamics(CoordinateType coord) const;
 
 
     /**
@@ -263,7 +263,7 @@ public:
      *
      * @return     True if is an object, False otherwise.
      */
-    bool isObjectDynamics(CoordinateType coord) const noexcept;
+    bool isObjectDynamics(CoordinateType coord) const;
 
 
     /**
@@ -271,7 +271,7 @@ public:
      *
      * @param[in]  coord  The coordinate.
      */
-    virtual void setNoneDynamics(CoordinateType coord) noexcept = 0;
+    virtual void setNoneDynamics(CoordinateType coord) = 0;
 
 
     /**
@@ -279,7 +279,7 @@ public:
      *
      * @param[in]  coord  The coordinate.
      */
-    virtual void setFluidDynamics(CoordinateType coord) noexcept = 0;
+    virtual void setFluidDynamics(CoordinateType coord) = 0;
 
 
     /**
@@ -287,7 +287,7 @@ public:
      *
      * @param[in]  coord  The coordinate.
      */
-    virtual void setWallDynamics(CoordinateType coord) noexcept = 0;
+    virtual void setWallDynamics(CoordinateType coord) = 0;
 
 
     /**
@@ -296,7 +296,7 @@ public:
      * @param[in]  coord     The coordinate.
      * @param[in]  velocity  The inlet velocity.
      */
-    virtual void setInletDynamics(CoordinateType coord, VelocityType velocity) noexcept = 0;
+    virtual void setInletDynamics(CoordinateType coord, VelocityType velocity) = 0;
 
 
     /**
@@ -305,7 +305,7 @@ public:
      * @param[in]  coord    The coordinate.
      * @param[in]  density  The outlet density.
      */
-    virtual void setOutletDynamics(CoordinateType coord, DensityType density) noexcept = 0;
+    virtual void setOutletDynamics(CoordinateType coord, DensityType density) = 0;
 
 
     /**
@@ -314,7 +314,7 @@ public:
      * @param[in]  coord     The coordinate.
      * @param[in]  velocity  The object velocity.
      */
-    virtual void setObjectDynamics(CoordinateType coord, VelocityType velocity) noexcept = 0;
+    virtual void setObjectDynamics(CoordinateType coord, VelocityType velocity) = 0;
 
 
 // Public Operations
@@ -394,42 +394,42 @@ inline bool Lattice::inRange(CoordinateType coord) const noexcept
 
 /* ************************************************************************ */
 
-inline bool Lattice::isNoneDynamics(CoordinateType coord) const noexcept
+inline bool Lattice::isNoneDynamics(CoordinateType coord) const
 {
     return getDynamics(coord) == Dynamics::None;
 }
 
 /* ************************************************************************ */
 
-inline bool Lattice::isFluidDynamics(CoordinateType coord) const noexcept
+inline bool Lattice::isFluidDynamics(CoordinateType coord) const
 {
     return getDynamics(coord) == Dynamics::Fluid;
 }
 
 /* ************************************************************************ */
 
-inline bool Lattice::isWallDynamics(CoordinateType coord) const noexcept
+inline bool Lattice::isWallDynamics(CoordinateType coord) const
 {
     return getDynamics(coord) == Dynamics::Wall;
 }
 
 /* ************************************************************************ */
 
-inline bool Lattice::isInletDynamics(CoordinateType coord) const noexcept
+inline bool Lattice::isInletDynamics(CoordinateType coord) const
 {
     return getDynamics(coord) == Dynamics::Inlet;
 }
 
 /* ************************************************************************ */
 
-inline bool Lattice::isOutletDynamics(CoordinateType coord) const noexcept
+inline bool Lattice::isOutletDynamics(CoordinateType coord) const
 {
     return getDynamics(coord) == Dynamics::Outlet;
 }
 
 /* ************************************************************************ */
 
-inline bool Lattice::isObjectDynamics(CoordinateType coord) const noexcept
+inline bool Lattice::isObjectDynamics(CoordinateType coord) const
 {
     return getDynamics(coord) == Dynamics::Object;
 }

@@ -120,7 +120,7 @@ public:
      *
      * @return     The dynamics.
      */
-    Dynamics getDynamics(CoordinateType coord) const noexcept override;
+    Dynamics getDynamics(CoordinateType coord) const override;
 
 
     /**
@@ -130,7 +130,7 @@ public:
      *
      * @return     The velocity.
      */
-    VelocityType getVelocity(CoordinateType coord) const noexcept override;
+    VelocityType getVelocity(CoordinateType coord) const override;
 
 
     /**
@@ -142,7 +142,7 @@ public:
      * @param[in]  coord     The coordinate.
      * @param[in]  velocity  The velocity.
      */
-    void setVelocity(CoordinateType coord, VelocityType velocity) noexcept override;
+    void setVelocity(CoordinateType coord, VelocityType velocity) override;
 
 
     /**
@@ -152,7 +152,7 @@ public:
      *
      * @return     The density.
      */
-    DensityType getDensity(CoordinateType coord) const noexcept override;
+    DensityType getDensity(CoordinateType coord) const override;
 
 
     /**
@@ -164,7 +164,7 @@ public:
      * @param[in]  coord    The coordinate.
      * @param[in]  density  The density.
      */
-    void setDensity(CoordinateType coord, DensityType density) noexcept override;
+    void setDensity(CoordinateType coord, DensityType density) override;
 
 
     /**
@@ -177,7 +177,7 @@ public:
      * @param[in]  velocity  The velocity.
      * @param[in]  density   The density.
      */
-    void setVelocityDensity(CoordinateType coord, VelocityType velocity, DensityType density) noexcept override;
+    void setVelocityDensity(CoordinateType coord, VelocityType velocity, DensityType density) override;
 
 
     /**
@@ -187,7 +187,7 @@ public:
      *
      * @return     The distribution functions.
      */
-    DistributionsType getDistributions(CoordinateType coord) const noexcept override;
+    DistributionsType getDistributions(CoordinateType coord) const override;
 
 
     /**
@@ -196,7 +196,7 @@ public:
      * @param[in]  coord          The coordinate.
      * @param[in]  distributions  The distribution functions.
      */
-    void setDistributions(CoordinateType coord, DistributionsType distributions) noexcept override;
+    void setDistributions(CoordinateType coord, DistributionsType distributions) override;
 
 
     /**
@@ -204,7 +204,7 @@ public:
      *
      * @param[in]  coord  The coordinate.
      */
-    void setNoneDynamics(CoordinateType coord) noexcept override;
+    void setNoneDynamics(CoordinateType coord) override;
 
 
     /**
@@ -212,7 +212,7 @@ public:
      *
      * @param[in]  coord  The coordinate.
      */
-    void setFluidDynamics(CoordinateType coord) noexcept override;
+    void setFluidDynamics(CoordinateType coord) override;
 
 
     /**
@@ -220,7 +220,7 @@ public:
      *
      * @param[in]  coord  The coordinate.
      */
-    void setWallDynamics(CoordinateType coord) noexcept override;
+    void setWallDynamics(CoordinateType coord) override;
 
 
     /**
@@ -229,7 +229,7 @@ public:
      * @param[in]  coord     The coordinate.
      * @param[in]  velocity  The inlet velocity.
      */
-    void setInletDynamics(CoordinateType coord, VelocityType velocity) noexcept override;
+    void setInletDynamics(CoordinateType coord, VelocityType velocity) override;
 
 
     /**
@@ -238,7 +238,7 @@ public:
      * @param[in]  coord    The coordinate.
      * @param[in]  density  The outlet density.
      */
-    void setOutletDynamics(CoordinateType coord, DensityType density) noexcept override;
+    void setOutletDynamics(CoordinateType coord, DensityType density) override;
 
 
     /**
@@ -247,7 +247,7 @@ public:
      * @param[in]  coord     The coordinate.
      * @param[in]  velocity  The object velocity.
      */
-    void setObjectDynamics(CoordinateType coord, VelocityType velocity) noexcept override;
+    void setObjectDynamics(CoordinateType coord, VelocityType velocity) override;
 
 
 // Public Operations

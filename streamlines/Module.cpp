@@ -396,6 +396,12 @@ void Module::init(AtomicBool& flag)
             "Increase number of time steps or decrease viscosity."
         );
     }
+    else if (m_converter.getTau() < 0.7)
+    {
+        Log::warning("[streamlines] Relaxation parameter Tau is too low, unwanted behaviour can be observed. "
+            "Decrease number of time steps or increase viscosity."
+        );
+    }
 
     if (m_converter.getViscosity() == 0.0)
         Log::warning("[streamlines] Zero viscosity means unstable simulation");

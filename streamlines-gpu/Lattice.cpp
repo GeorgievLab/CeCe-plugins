@@ -855,7 +855,6 @@ void Lattice::initDefault()
 
     // Insert barrier so any following command must wait to initialization
     {
-        //StaticArray<cl_event, 2> events{syncEvent, init2Event};
         StaticArray<cl_event, 1> events{syncEvent};
 
         CL_CHECK(CL_CALL(clEnqueueBarrierWithWaitList)(
@@ -864,6 +863,9 @@ void Lattice::initDefault()
             nullptr
         ));
     }
+
+    clReleaseEvent(initEvent);
+    clReleaseEvent(syncEvent);
 }
 
 /* ************************************************************************ */
@@ -1029,6 +1031,11 @@ void Lattice::update(unsigned int count)
             1, &syncEvent,
             nullptr
         ));
+
+        clReleaseEvent(collideEvent);
+        clReleaseEvent(streamEvent);
+        clReleaseEvent(bcEvent);
+        clReleaseEvent(syncEvent);
     }
 
     m_dfLocal.dirty = true;
@@ -1086,6 +1093,8 @@ void Lattice::uploadDf()
             nullptr
         ));
     }
+
+    clReleaseEvent(uploadEvent);
 }
 
 /* ************************************************************************ */

@@ -34,13 +34,14 @@
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #include "CL/opencl.h"
 
-#if __linux__ || __APPLE__ && __MACH__
-#include <dlfcn.h>
-#elif _WIN32
+#if _WIN32
 #include <windows.h>
+#else
+#include <dlfcn.h>
 #endif
 
 // CeCe
+#include "cece/core/String.hpp"
 #include "cece/core/Exception.hpp"
 
 /* ************************************************************************ */
@@ -58,7 +59,11 @@ namespace streamlines_gpu {
 /* ************************************************************************ */
 
 #ifndef OPENCL_STATIC
+#if _WIN32
+static HMODULE g_library = nullptr;
+#else
 static void* g_library = nullptr;
+#endif
 #endif
 
 /* ************************************************************************ */
@@ -81,16 +86,13 @@ void library_init()
     SetThreadErrorMode(oldMode, NULL);
 #endif
 
-#if __linux__ || __APPLE__ && __MACH__
-    if (g_library == nullptr)
-        throw RuntimeException(dlerror());
-#elif _WIN32
+#if _WIN32
     if (g_library == nullptr)
     {
         // Get error message
         const auto err = ::GetLastError();
         if (err == 0)
-            return {};
+            return;
 
         LPSTR buffer = nullptr;
         auto size = FormatMessageA(
@@ -111,13 +113,16 @@ void library_init()
 
         throw RuntimeException(message);
     }
+#else
+    if (g_library == nullptr)
+        throw RuntimeException(dlerror());
 #endif
 
     // Assign
-#if __linux__ || __APPLE__ && __MACH__
-# define CL_FUNCTION(name) name ## _fn = reinterpret_cast<decltype(name)*>(dlsym(g_library, # name));
-#elif _WIN32
+#if _WIN32
 # define CL_FUNCTION(name) name ## _fn = reinterpret_cast<decltype(name)*>(GetProcAddress(g_library, # name));
+#else
+# define CL_FUNCTION(name) name ## _fn = reinterpret_cast<decltype(name)*>(dlsym(g_library, # name));
 #endif
 #include "functions.hpp"
 
@@ -132,11 +137,11 @@ void library_init()
 
 void library_free()
 {
-#if __linux__ || __APPLE__ && __MACH__
+#if _WIN32
+    FreeLibrary(g_library);
+#else
     if (g_library)
         dlclose(g_library);
-#elif _WIN32
-    FreeLibrary(g_library);
 #endif
 }
 

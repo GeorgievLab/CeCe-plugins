@@ -864,8 +864,8 @@ void Lattice::initDefault()
         ));
     }
 
-    clReleaseEvent(initEvent);
-    clReleaseEvent(syncEvent);
+    CL_CALL(clReleaseEvent)(initEvent);
+    CL_CALL(clReleaseEvent)(syncEvent);
 }
 
 /* ************************************************************************ */
@@ -1032,10 +1032,10 @@ void Lattice::update(unsigned int count)
             nullptr
         ));
 
-        clReleaseEvent(collideEvent);
-        clReleaseEvent(streamEvent);
-        clReleaseEvent(bcEvent);
-        clReleaseEvent(syncEvent);
+        CL_CALL(clReleaseEvent)(collideEvent);
+        CL_CALL(clReleaseEvent)(streamEvent);
+        CL_CALL(clReleaseEvent)(bcEvent);
+        CL_CALL(clReleaseEvent)(syncEvent);
     }
 
     m_dfLocal.dirty = true;
@@ -1094,7 +1094,7 @@ void Lattice::uploadDf()
         ));
     }
 
-    clReleaseEvent(uploadEvent);
+    CL_CALL(clReleaseEvent)(uploadEvent);
 }
 
 /* ************************************************************************ */

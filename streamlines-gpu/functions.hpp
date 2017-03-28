@@ -50,6 +50,7 @@ CL_FUNCTION(clSetKernelArg)
 CL_FUNCTION(clEnqueueNDRangeKernel)
 CL_FUNCTION(clEnqueueBarrierWithWaitList)
 CL_FUNCTION(clEnqueueWriteBuffer)
+CL_FUNCTION(clReleaseEvent)
 
 /* ************************************************************************ */
 

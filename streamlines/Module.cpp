@@ -194,7 +194,7 @@ void setBoundaryBlocks(
 
             // Set boundary dynamics
             if (lattice.getDynamics(c) == Dynamics::Fluid)
-                setFn(c, block.getSize());
+                setFn(c, i - block.first(), block.getSize());
         }
     }
 }
@@ -402,6 +402,10 @@ void Module::init(AtomicBool& flag)
             "Decrease number of time steps or increase viscosity."
         );
     }
+    else if (m_converter.getTau() <= 0.5)
+    {
+        Log::error("[streamlines] Relaxation parameter Tau is too low.");
+    }
 
     if (m_converter.getViscosity() == 0.0)
         Log::warning("[streamlines] Zero viscosity means unstable simulation");
@@ -581,6 +585,8 @@ void Module::loadConfig(const config::Configuration& config)
 
             if (typeStr == "constant")
                 type = Boundary::InletProfileType::Constant;
+            else if (typeStr == "poiseuille")
+                type = Boundary::InletProfileType::Poiseuille;
 
             for (auto& boundary : m_config.boundaries)
                 boundary.setInletProfileType(type);
@@ -597,6 +603,8 @@ void Module::loadConfig(const config::Configuration& config)
 
                 if (types[i] == "constant")
                     type = Boundary::InletProfileType::Constant;
+                else if (types[i] == "poiseuille")
+                    type = Boundary::InletProfileType::Poiseuille;
 
                 m_config.boundaries[i].setInletProfileType(type);
             }
@@ -1271,7 +1279,7 @@ void Module::updateBoundary(const Boundary& boundary)
     };
 
     // Calculate inlet velocity
-    auto inletVelocity = [&] (Lattice::CoordinateType coord, int width) -> units::VelocityVector
+    auto inletVelocity = [&] (Lattice::CoordinateType coord, int pos, int width) -> units::VelocityVector
     {
         auto type = boundary.getInletProfileType();
 
@@ -1305,19 +1313,48 @@ void Module::updateBoundary(const Boundary& boundary)
                 std::abort();
             }
         }
+        else if (type == Boundary::InletProfileType::Poiseuille)
+        {
+            // Calculate velocity
+            const units::Velocity maxVelocity = boundary.getInletFlow() != Zero
+                ? inletFlowVelocity(width)
+                : boundary.getInletVelocity()
+            ;
+
+            const units::Velocity velocity = Descriptor::calcPoiseuilleFlow(9.0 / 4.0 * maxVelocity, width, pos);
+
+            switch (boundary.getPosition())
+            {
+            case Boundary::Position::Top:
+                return {Zero, -velocity};
+
+            case Boundary::Position::Bottom:
+                return {Zero, velocity};
+
+            case Boundary::Position::Left:
+                return {velocity, Zero};
+
+            case Boundary::Position::Right:
+                return {-velocity, Zero};
+
+            default:
+                Assert(false && "Invalid boundary position");
+                std::abort();
+            }
+        }
 
         return Zero;
     };
 
     // Boundary set function
-    auto setFnInlet = [&] (Lattice::CoordinateType c, int width) {
-        const auto iu = inletVelocity(c, width);
+    auto setFnInlet = [&] (Lattice::CoordinateType c, int pos, int width) {
+        const auto iu = inletVelocity(c, pos, width);
         const auto u = m_converter.convertVelocity(iu);
         m_lattice->setInletDynamics(c, u);
     };
 
     // Boundary set function
-    auto setFnOutlet = [&] (Lattice::CoordinateType c, int width) {
+    auto setFnOutlet = [&] (Lattice::CoordinateType c, int pos, int width) {
         m_lattice->setOutletDynamics(c, 1.0);
     };
 

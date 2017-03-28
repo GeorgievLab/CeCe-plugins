@@ -186,9 +186,9 @@ public:
     template<typename VelocityT, typename PositionT>
     static VelocityT calcPoiseuilleFlow(VelocityT max, PositionT size, PositionT pos) noexcept
     {
-        Assert(pos >= 0);
-        Assert(pos < size);
-        Assert(size > 1);
+        CECE_ASSERT(pos >= 0);
+        CECE_ASSERT(pos < size);
+        CECE_ASSERT(size > 1);
 
         const auto posR = static_cast<RealType>(pos);
         const auto sizeR = static_cast<RealType>(size);

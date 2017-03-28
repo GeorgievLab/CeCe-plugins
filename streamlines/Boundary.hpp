@@ -86,7 +86,8 @@ public:
     enum class InletProfileType
     {
         Auto,
-        Constant
+        Constant,
+        Poiseuille
     };
 
 

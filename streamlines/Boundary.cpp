@@ -168,6 +168,10 @@ InStream& operator>>(InStream& is, Boundary::InletProfileType& type)
 
     if (desc == "constant")
         type = Boundary::InletProfileType::Constant;
+    else if (desc == "poiseuille")
+        type = Boundary::InletProfileType::Poiseuille;
+    else if (desc == "parabolic")
+        type = Boundary::InletProfileType::Poiseuille;
     else if (desc == "auto")
         type = Boundary::InletProfileType::Auto;
     else
@@ -194,6 +198,8 @@ OutStream& operator<<(OutStream& os, const Boundary::InletProfileType& type)
         os << "auto"; break;
     case Boundary::InletProfileType::Constant:
         os << "constant"; break;
+    case Boundary::InletProfileType::Poiseuille:
+        os << "poiseuille"; break;
     default:
         throw InvalidArgumentException("Unknown inlet velocity profile type");
     }

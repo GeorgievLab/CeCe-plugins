@@ -77,7 +77,7 @@ install:
 
 before_build:
     - md build
-    - pushd build && cmake -G "%GENERATOR%" -DCMAKE_BUILD_TYPE=Release .. & popd
+    - pushd build && cmake -G "%GENERATOR%" -DGIT_BRANCH="%APPVEYOR_REPO_BRANCH%" -DCMAKE_BUILD_TYPE=Release .. & popd
 
 build_script:
     - pushd build && cmake --build . --config Release & popd

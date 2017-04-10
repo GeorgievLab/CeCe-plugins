@@ -82,7 +82,7 @@ before_script:
     - if [ "$TRAVIS_OS_NAME" == "linux" -a "$CXX" = "clang++" ]; then export CXX="clang++-3.6" CC="clang-3.6"; fi
     - mkdir build
     - pushd build
-    - cmake -DCMAKE_BUILD_TYPE=release -DCECE_TESTS_BUILD=On -DCECE_RENDER=$CECE_RENDER ..
+    - cmake -DGIT_BRANCH=$TRAVIS_BRANCH -DCMAKE_BUILD_TYPE=release -DCECE_TESTS_BUILD=On -DCECE_RENDER=$CECE_RENDER ..
     - popd
 
 script:

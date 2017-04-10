@@ -357,6 +357,12 @@ if (${CMAKE_SOURCE_DIR} MATCHES ${CMAKE_CURRENT_SOURCE_DIR})
         set(BINTRAY_VERSION ${PROJECT_VERSION})
     endif ()
 
+    if (GIT_BRANCH MATCHES "experimental")
+        set(BINTRAY_REPO "CeCe-plugins-ci-experimental")
+    else ()
+        set(BINTRAY_REPO "CeCe-plugins-ci")
+    endif ()
+
     configure_file(resources/descriptor.json.in descriptor.json @ONLY)
 
     set(CPACK_STRIP_FILES "${INSTALL_DIR_RUNTIME}/${CMAKE_PROJECT_NAME}")

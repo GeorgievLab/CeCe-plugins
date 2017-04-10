@@ -1047,7 +1047,7 @@ void Module::updateObjectStatic(object::Object& object)
         // Get coordinate to lattice
         const auto coord = Coordinate(pos / step);
 
-        Vector<RealType> velocityLB = Zero;
+        Lattice::VelocityType velocityLB = Zero;
         unsigned long count = 0;
 
         // Store velocity for each coordinate

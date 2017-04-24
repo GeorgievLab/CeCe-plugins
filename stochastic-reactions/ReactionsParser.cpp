@@ -177,7 +177,7 @@ Tokenizer::TokenType Tokenizer::tokenize()
     }
 
     // Number
-    if(isDigit())
+    if (isDigit() || is('.'))
         return tokenizeNumber();
 
     // Identifier

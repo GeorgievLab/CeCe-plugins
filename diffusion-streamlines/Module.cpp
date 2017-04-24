@@ -166,9 +166,11 @@ void Module::updateSignal(SignalId id)
             // Apply matrix
             matrix.for_each([&](size_t i, size_t j, RealType value) {
                 const auto coord = c + Coordinate(i, j) - OFFSET;
-                Assert(inRange(coord));
-                getSignalBack(id, coord) += signal * value;
-                Assert(getSignalBack(id, coord) >= Zero);
+                if (inRange(coord))
+                {
+                    getSignalBack(id, coord) += signal * value;
+                    Assert(getSignalBack(id, coord) >= Zero);
+                }
             });
         }
 
